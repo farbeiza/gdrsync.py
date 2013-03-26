@@ -4,8 +4,8 @@ import re
 
 import httplib2
 
-from apiclient.discovery import build
-from oauth2client.client import OAuth2WebServerFlow
+import apiclient.discovery
+import oauth2client.client
 
 FIELDS = 'id, title, mimeType, modifiedDate, md5Checksum, fileSize'
 
@@ -23,7 +23,8 @@ REDIRECT_URI = 'urn:ietf:wg:oauth:2.0:oob'
 def escapeQueryParameter(parameter):
     return SEARCH_PARAMETER_RE.sub(SEARCH_PARAMETER_REPLACEMENT, parameter)
 
-flow = OAuth2WebServerFlow(CLIENT_ID, CLIENT_SECRET, OAUTH_SCOPE, REDIRECT_URI)
+flow = oauth2client.client.OAuth2WebServerFlow(CLIENT_ID, CLIENT_SECRET,
+        OAUTH_SCOPE, REDIRECT_URI)
 
 url = flow.step1_get_authorize_url()
 print 'Please open the following URL: '
@@ -35,4 +36,4 @@ credentials = flow.step2_exchange(authorizationCode)
 http = httplib2.Http()
 http = credentials.authorize(http)
 
-DRIVE_SERVICE = build('drive', 'v2', http = http)
+DRIVE_SERVICE = apiclient.discovery.build('drive', 'v2', http = http)
