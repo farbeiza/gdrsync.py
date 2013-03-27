@@ -1,5 +1,7 @@
 #!/usr/bin/python
 
+import config
+
 import re
 
 import httplib2
@@ -23,17 +25,27 @@ REDIRECT_URI = 'urn:ietf:wg:oauth:2.0:oob'
 def escapeQueryParameter(parameter):
     return SEARCH_PARAMETER_RE.sub(SEARCH_PARAMETER_REPLACEMENT, parameter)
 
-flow = oauth2client.client.OAuth2WebServerFlow(CLIENT_ID, CLIENT_SECRET,
-        OAUTH_SCOPE, REDIRECT_URI)
+def credentials():
+    refreshToken = config.PARSER.get('gdrsync', 'refreshToken')
+    if refreshToken:
+        return oauth2client.client.OAuth2Credentials(None, CLIENT_ID,
+                CLIENT_SECRET, refreshToken, None,
+                oauth2client.GOOGLE_TOKEN_URI, None)
 
-url = flow.step1_get_authorize_url()
-print 'Please open the following URL: '
-print url
-authorizationCode = raw_input('Copy and paste the authorization code: ').strip()
+    flow = oauth2client.client.OAuth2WebServerFlow(CLIENT_ID, CLIENT_SECRET,
+            OAUTH_SCOPE, REDIRECT_URI,
+            access_type = 'offline', approval_prompt = 'force')
 
-credentials = flow.step2_exchange(authorizationCode)
+    url = flow.step1_get_authorize_url()
+    print 'Please open the following URL: '
+    print url
+    authorizationCode = raw_input('Copy and paste the authorization code: ').strip()
 
-http = httplib2.Http()
-http = credentials.authorize(http)
+    credentials = flow.step2_exchange(authorizationCode)
+    print "Refresh token: " + credentials.refresh_token
+
+    return credentials
+
+http = credentials().authorize(httplib2.Http())
 
 DRIVE_SERVICE = apiclient.discovery.build('drive', 'v2', http = http)
