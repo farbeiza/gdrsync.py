@@ -2,6 +2,7 @@
 
 import config
 
+import logging
 import re
 
 import httplib2
@@ -22,16 +23,21 @@ CLIENT_SECRET = 'WTj0xKbLAFjDqUeT2HGDZHCi'
 OAUTH_SCOPE = 'https://www.googleapis.com/auth/drive'
 REDIRECT_URI = 'urn:ietf:wg:oauth:2.0:oob'
 
+LOGGER = logging.getLogger(__name__)
+
 def escapeQueryParameter(parameter):
     return SEARCH_PARAMETER_RE.sub(SEARCH_PARAMETER_REPLACEMENT, parameter)
 
 def credentials():
     refreshToken = config.PARSER.get('gdrsync', 'refreshToken')
     if refreshToken:
+        LOGGER.debug("Using stored refresh token...");
+
         return oauth2client.client.OAuth2Credentials(None, CLIENT_ID,
                 CLIENT_SECRET, refreshToken, None,
                 oauth2client.GOOGLE_TOKEN_URI, None)
 
+    LOGGER.debug("Requesting new refresh token...");
     flow = oauth2client.client.OAuth2WebServerFlow(CLIENT_ID, CLIENT_SECRET,
             OAUTH_SCOPE, REDIRECT_URI,
             access_type = 'offline', approval_prompt = 'force')
