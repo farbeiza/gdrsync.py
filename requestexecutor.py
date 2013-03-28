@@ -14,13 +14,12 @@ def execute(request):
             return request()
         except:
             wait = exponentialBackoffWait(retry)
-            LOGGER.exception("Retry %(retry)d failed. Retrying after %(wait)f s...",
-                    {'retry': retry, 'wait': wait});
+            LOGGER.exception("Retry %d failed. Retrying after %f s...", retry,
+                    wait);
 
             time.sleep(wait);
 
-    raise RuntimeError('Request aborted after %(retries)d retries.'
-            % {'retries' : RETRIES})
+    raise RuntimeError('Request aborted after %d retries.' % RETRIES)
 
 def exponentialBackoffWait(retry):
     return (2 ** retry) + random.random()

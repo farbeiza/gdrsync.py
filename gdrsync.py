@@ -7,8 +7,12 @@ import logging
 logging.basicConfig()
 logging.getLogger().setLevel(config.PARSER.get('gdrsync', 'logLevel'))
 
-import remotefile
+import localfolder
+import remotefolder
 
-remoteFile = remotefile.Factory().create('/test')
+localFile = localfolder.Factory().create('/home/farbeiza/Escritorio')
+remoteFile = remotefolder.Factory().create('/test')
 
-print remoteFile.delegate
+print remoteFile.file.delegate
+print remoteFile._files
+print remoteFile._folders

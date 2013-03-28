@@ -5,18 +5,18 @@ import requestexecutor
 
 import os
 
+def fromParent(parent, delegate):
+    return fromParentPath(parent.path, delegate)
+
+def fromParentPath(parentPath, delegate):
+    path = os.path.join(parentPath, delegate['title'])
+
+    return RemoteFile(path, delegate);
+
 class RemoteFile:
     def __init__(self, path, delegate):
         self._path = path
         self._delegate = delegate
-
-    def fromParent(parent, delegate):
-        return fromParentPath(parentPath, delegate)
-
-    def fromParentPath(parentPath, delegate):
-        path = os.path.join(parentPath, delegate.title)
-
-        return RemoteFile(path, delegate);
 
     @property
     def delegate(self):
@@ -28,29 +28,31 @@ class RemoteFile:
 
     @property
     def name(self):
-        return self._delegate.title
+        return self._delegate['title']
 
     @property
     def size(self):
-        return self._delegate.fileSize
+        return self._delegate['fileSize']
 
     @property
     def modified(self):
-        return self._delegate.modifiedDate.value
+        return self._delegate['modifiedDate']
 
     @property
     def md5(self):
-        return self._delegate.md5Checksum
+        return self._delegate['md5Checksum']
 
     @property
     def folder(self):
-        return self._delegate.mimeType == driveutils.MIME_FOLDER
+        return self._delegate['mimeType'] == driveutils.MIME_FOLDER
 
 FILE_ID_QUERY = '(title = \'%(title)s\') and (not trashed)'
 
 class Factory:
     def create(self, path):
         fileId = self.fileId(path)
+        if fileId is None:
+            raise RuntimeError('%s not found' % path)
 
         def request():
             return (driveutils.DRIVE.files()

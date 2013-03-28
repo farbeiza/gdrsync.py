@@ -45,3 +45,10 @@ class LocalFile:
     @property
     def folder(self):
         return os.path.isdir(self._path)
+
+class Factory:
+    def create(self, path):
+        if not os.path.exists(path):
+            raise RuntimeError('%s not found' % path)
+
+        return LocalFile(path)
