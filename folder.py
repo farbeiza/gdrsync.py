@@ -10,6 +10,10 @@ class Folder:
     def file(self):
         return self._file
 
+    @property
+    def folders(self):
+        return self._folders
+
     def addChild(self, file):
         if file.folder:
             self._folders[file.name] = file

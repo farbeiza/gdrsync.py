@@ -5,6 +5,14 @@ import os
 
 MD5_BUFFER_SIZE = 16 * 1024
 
+def fromParent(parent, path):
+    return fromParentPath(parent.path, path)
+
+def fromParentPath(parentPath, path):
+    path = os.path.join(parentPath, os.path.basename(path))
+
+    return LocalFile(path);
+
 class LocalFile:
     def __init__(self, path):
         self._path = path
