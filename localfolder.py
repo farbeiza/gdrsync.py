@@ -11,7 +11,7 @@ class Factory:
             return self.create(localfile.LocalFile(file))
 
         localFolder = folder.Folder(file)
-        for pathname in os.listdir(file.delegate):
-            localFolder.addChild(localfile.LocalFile(pathname))
+        for path in os.listdir(file.delegate):
+            localFolder.addChild(localfile.LocalFile(path))
 
         return localFolder
