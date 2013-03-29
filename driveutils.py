@@ -28,13 +28,12 @@ LOGGER = logging.getLogger(__name__)
 def credentials():
     refreshToken = config.PARSER.get('gdrsync', 'refreshToken')
     if refreshToken:
-        LOGGER.debug("Using stored refresh token...");
+        LOGGER.debug('Using stored refresh token...');
 
         return oauth2client.client.OAuth2Credentials(None, CLIENT_ID,
                 CLIENT_SECRET, refreshToken, None,
                 oauth2client.GOOGLE_TOKEN_URI, None)
 
-    LOGGER.debug("Requesting new refresh token...");
     flow = oauth2client.client.OAuth2WebServerFlow(CLIENT_ID, CLIENT_SECRET,
             OAUTH_SCOPE, REDIRECT_URI,
             access_type = 'offline', approval_prompt = 'force')
@@ -44,8 +43,9 @@ def credentials():
     print url
     authorizationCode = raw_input('Copy and paste the authorization code: ').strip()
 
+    LOGGER.debug('Requesting new refresh token...');
     credentials = flow.step2_exchange(authorizationCode)
-    print "Refresh token: " + credentials.refresh_token
+    print 'Refresh token: ' + credentials.refresh_token
 
     return credentials
 

@@ -9,7 +9,20 @@ import os
 
 CHILDREN_QUERY = '(\'%(parents)s\' in parents) and (not trashed)'
 
-CHILDREN_FIELDS = "nextPageToken, items(%s)" % driveutils.FIELDS
+CHILDREN_FIELDS = 'nextPageToken, items(%s)' % driveutils.FIELDS
+
+class RemoteFolder(folder.Folder):
+    def __init__(self, file):
+        super().__init__(file)
+
+    def createRemoteFile(name, mimeType = None):
+        file = {'title': name};
+        if mimeType is not None:
+            file[mimeType] = mimeType
+
+        file['parents'] = [{'id': self.file.delegate['id']}]
+
+        return remotefile.fromParent(self.file, file)
 
 class Factory:
     def create(self, file):

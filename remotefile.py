@@ -46,6 +46,9 @@ class RemoteFile:
     def folder(self):
         return self._delegate['mimeType'] == driveutils.MIME_FOLDER
 
+    def withDelegate(self, delegate):
+        return RemoteFile(self._path, delegate)
+
 FILE_ID_QUERY = '(title = \'%(title)s\') and (not trashed)'
 
 class Factory:
