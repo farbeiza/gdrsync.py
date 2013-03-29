@@ -11,9 +11,9 @@ def fromParent(parent, path):
 def fromParentPath(parentPath, path):
     path = os.path.join(parentPath, os.path.basename(path))
 
-    return LocalFile(path);
+    return LocalFile(path)
 
-class LocalFile:
+class LocalFile(object):
     def __init__(self, path):
         self._path = path
 
@@ -54,7 +54,7 @@ class LocalFile:
     def folder(self):
         return os.path.isdir(self._path)
 
-class Factory:
+class Factory(object):
     def create(self, path):
         if not os.path.exists(path):
             raise RuntimeError('%s not found' % path)

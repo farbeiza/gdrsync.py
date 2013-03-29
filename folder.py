@@ -1,21 +1,38 @@
 #!/usr/bin/python
 
-class Folder:
+class Folder(object):
     def __init__(self, file):
         self._file = file
-        self._files = {}
-        self._folders = {}
+        self._children = {}
+        self._duplicate = []
 
     @property
     def file(self):
         return self._file
 
     @property
-    def folders(self):
-        return self._folders
+    def children(self):
+        return self._children
+
+    @property
+    def duplicate(self):
+        return self._duplicate
 
     def addChild(self, file):
-        if file.folder:
-            self._folders[file.name] = file
-        else:
-            self._files[file.name] = file
+        name = file.name
+        if name in self._children:
+            self._duplicate.append(file)
+
+            return
+
+        self._children[name] = file
+
+    def addChildren(self, files):
+        for file in files:
+            self.addChild(file)
+
+    def files(self):
+        return filter(lambda f: not f.folder, self._children.values())
+
+    def folders(self):
+        return filter(lambda f: f.folder, self._children.values())

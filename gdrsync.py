@@ -16,7 +16,7 @@ import sys
 
 LOGGER = logging.getLogger(__name__)
 
-class GDRsync:
+class GDRsync(object):
     def __init__(self):
         self.localFolderFactory = localfolder.Factory()
         self.remoteFolderFactory = remotefolder.Factory()
@@ -30,32 +30,66 @@ class GDRsync:
         LOGGER.info('End.')
 
     def _sync(self, localFolder, remoteFolder):
-        self.syncFolders(localFolder, remoteFolder)
+        remoteFolder = self.trash(localFolder, remoteFolder)
 
-        for name, localFile in localFolder.folders.iteritems():
-            remoteFile = remoteFolder.folders[localFile.name]
+        remoteFolder = self.insertFolders(localFolder, remoteFolder)
+
+        for localFile in localFolder.folders():
+            remoteFile = remoteFolder.children[localFile.name]
 
             childLocalFolder = self.localFolderFactory.create(localFile)
-            childRemoteFolder = self.remoteFolderFactory.create(localFile)
+            childRemoteFolder = self.remoteFolderFactory.create(remoteFile)
 
             self._sync(childLocalFolder, childRemoteFolder)
 
-    def syncFolders(self, localFolder, remoteFolder):
-        self.insertFolders(localFolder, remoteFolder)
-        self.trashFolders(localFolder, remoteFolder)
+    def trash(self, localFolder, remoteFolder):
+        remoteFolder = self.trashExtraneous(localFolder, remoteFolder)
+
+        return remoteFolder
+
+    def trashExtraneous(self, localFolder, remoteFolder):
+        output = remotefolder.RemoteFolder(remoteFolder.file)
+        for name, remoteFile in remoteFolder.children.iteritems():
+            if remoteFile.name in localFolder.children:
+                output.addChild(remoteFile)
+                continue
+
+            LOGGER.debug('%s: Extraneous file...', remoteFile.path)
+
+            remoteFile = self.trashFile(remoteFile)
+
+        return output
+
+    def trashFile(self, remoteFile):
+        LOGGER.info('%s: Trashing file...', remoteFile.path)
+
+        def request():
+            return (driveutils.DRIVE.files()
+                    .trash(fileId = remoteFile.delegate['id'],
+                            fields = driveutils.FIELDS)
+                    .execute())
+
+        file = requestexecutor.execute(request)
+
+        return remoteFile.withDelegate(file)
 
     def insertFolders(self, localFolder, remoteFolder):
-        for name, localFile in localFolder.folders.iteritems():
-            remoteFile = remoteFolder.folders.get([localFile.name])
+        output = remotefolder.RemoteFolder(remoteFolder.file)
+        output.addChildren(remoteFolder.children.values())
+
+        for localFile in localFolder.folders():
+            remoteFile = remoteFolder.children.get(localFile.name)
             if remoteFile is not None:
                 LOGGER.debug('%s: Existing folder.', remoteFile.path)
                 continue
 
-            remoteFile = remoteFolder.newRemoteFile(localFile.name, 
+            remoteFile = remoteFolder.createRemoteFile(localFile.name, 
                     driveutils.MIME_FOLDER)
             remoteFile = self.insertFolder(localFile, remoteFile)
 
-            remoteFolder.folders[remoteFile.name] = remoteFile
+            output.addChild(remoteFile)
+
+        return output
 
     def insertFolder(self, localFile, remoteFile):
         LOGGER.info('%s: Inserting folder...', remoteFile.path)
@@ -63,29 +97,6 @@ class GDRsync:
         def request():
             return (driveutils.DRIVE.files().insert(body = remoteFile.delegate,
                     fields = driveutils.FIELDS).execute())
-
-        file = requestexecutor.execute(request)
-
-        return remoteFile.withDelegate(file)
-
-    def trashFolders(self, localFolder, remoteFolder):
-        for name, remoteFile in remoteFolder.folders.items():
-            localFile = localFolder.folders.get(remoteFile.name)
-            if localFile is not None:
-                continue
-
-            remoteFile = self.trashFolder(remoteFile)
-
-            del remoteFolder.folders[remoteFile.name]
-
-    def trashFolder(self, remoteFile):
-        LOGGER.info('%s: Trashing folder...', remoteFile.path)
-
-        def request():
-            return (driveutils.DRIVE.files()
-                    .trash(fileId = remoteFile.delegate['id'],
-                            fields = driveutils.FIELDS)
-                    .execute())
 
         file = requestexecutor.execute(request)
 

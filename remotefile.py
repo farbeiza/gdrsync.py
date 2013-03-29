@@ -11,9 +11,9 @@ def fromParent(parent, delegate):
 def fromParentPath(parentPath, delegate):
     path = os.path.join(parentPath, delegate['title'])
 
-    return RemoteFile(path, delegate);
+    return RemoteFile(path, delegate)
 
-class RemoteFile:
+class RemoteFile(object):
     def __init__(self, path, delegate):
         self._path = path
         self._delegate = delegate
@@ -51,7 +51,7 @@ class RemoteFile:
 
 FILE_ID_QUERY = '(title = \'%(title)s\') and (not trashed)'
 
-class Factory:
+class Factory(object):
     def create(self, path):
         fileId = self.fileId(path)
         if fileId is None:

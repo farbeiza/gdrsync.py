@@ -7,24 +7,24 @@ import requestexecutor
 
 import os
 
-CHILDREN_QUERY = '(\'%(parents)s\' in parents) and (not trashed)'
-
-CHILDREN_FIELDS = 'nextPageToken, items(%s)' % driveutils.FIELDS
-
 class RemoteFolder(folder.Folder):
     def __init__(self, file):
-        super().__init__(file)
+        super(RemoteFolder, self).__init__(file)
 
-    def createRemoteFile(name, mimeType = None):
-        file = {'title': name};
+    def createRemoteFile(self, name, mimeType = None):
+        file = {'title': name}
         if mimeType is not None:
-            file[mimeType] = mimeType
+            file['mimeType'] = mimeType
 
         file['parents'] = [{'id': self.file.delegate['id']}]
 
         return remotefile.fromParent(self.file, file)
 
-class Factory:
+CHILDREN_QUERY = '(\'%(parents)s\' in parents) and (not trashed)'
+
+CHILDREN_FIELDS = 'nextPageToken, items(%s)' % driveutils.FIELDS
+
+class Factory(object):
     def create(self, file):
         if not isinstance(file, remotefile.RemoteFile):
             return self.create(remotefile.Factory().create(file))
