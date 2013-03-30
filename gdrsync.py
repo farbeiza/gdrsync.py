@@ -43,22 +43,19 @@ class GDRsync(object):
             self._sync(childLocalFolder, childRemoteFolder)
 
     def trash(self, localFolder, remoteFolder):
+        remoteFolder = self.trashDuplicate(localFolder, remoteFolder)
         remoteFolder = self.trashExtraneous(localFolder, remoteFolder)
+        remoteFolder = self.trashDifferentType(localFolder, remoteFolder)
 
         return remoteFolder
 
-    def trashExtraneous(self, localFolder, remoteFolder):
-        output = remotefolder.RemoteFolder(remoteFolder.file)
-        for name, remoteFile in remoteFolder.children.iteritems():
-            if remoteFile.name in localFolder.children:
-                output.addChild(remoteFile)
-                continue
-
-            LOGGER.debug('%s: Extraneous file...', remoteFile.path)
+    def trashDuplicate(self, localFolder, remoteFolder):
+        for remoteFile in remoteFolder.duplicate:
+            LOGGER.debug('%s: Duplicate file.', remoteFile.path)
 
             remoteFile = self.trashFile(remoteFile)
 
-        return output
+        return remoteFolder.withoutDuplicate()
 
     def trashFile(self, remoteFile):
         LOGGER.info('%s: Trashing file...', remoteFile.path)
@@ -73,10 +70,36 @@ class GDRsync(object):
 
         return remoteFile.withDelegate(file)
 
-    def insertFolders(self, localFolder, remoteFolder):
+    def trashExtraneous(self, localFolder, remoteFolder):
         output = remotefolder.RemoteFolder(remoteFolder.file)
-        output.addChildren(remoteFolder.children.values())
+        for remoteFile in remoteFolder.children.values():
+            if remoteFile.name in localFolder.children:
+                output.addChild(remoteFile)
+                continue
 
+            LOGGER.debug('%s: Extraneous file.', remoteFile.path)
+
+            remoteFile = self.trashFile(remoteFile)
+
+        return output
+
+    def trashDifferentType(self, localFolder, remoteFolder):
+        output = remotefolder.RemoteFolder(remoteFolder.file)
+        for remoteFile in remoteFolder.children.values():
+            localFile = localFolder.children[remoteFile.name]
+            if localFile.folder == remoteFile.folder:
+                output.addChild(remoteFile)
+                continue
+
+            LOGGER.debug('%s: Different type.', remoteFile.path)
+
+            remoteFile = self.trashFile(remoteFile)
+
+        return output
+
+    def insertFolders(self, localFolder, remoteFolder):
+        output = (remotefolder.RemoteFolder(remoteFolder.file)
+                .addChildren(remoteFolder.children.values()))
         for localFile in localFolder.folders():
             remoteFile = remoteFolder.children.get(localFile.name)
             if remoteFile is not None:

@@ -8,8 +8,11 @@ import requestexecutor
 import os
 
 class RemoteFolder(folder.Folder):
-    def __init__(self, file):
-        super(RemoteFolder, self).__init__(file)
+    def __init__(self, file, children = {}, duplicate = []):
+        super(RemoteFolder, self).__init__(file, children, duplicate)
+
+    def withoutDuplicate(self):
+        return RemoteFolder(self._file, self._children)
 
     def createRemoteFile(self, name, mimeType = None):
         file = {'title': name}
@@ -32,7 +35,7 @@ class Factory(object):
         query = CHILDREN_QUERY % {'parents': file.delegate['id']}
 
         def request():
-            remoteFolder = folder.Folder(file)
+            remoteFolder = RemoteFolder(file)
 
             list = (driveutils.DRIVE.files()
                     .list(q = query, fields = CHILDREN_FIELDS))
