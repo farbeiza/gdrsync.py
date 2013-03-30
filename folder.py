@@ -1,10 +1,12 @@
 #!/usr/bin/python
 
+import utils
+
 class Folder(object):
-    def __init__(self, file, children = {}, duplicate = []):
+    def __init__(self, file, children = None, duplicate = None):
         self._file = file
-        self._children = children
-        self._duplicate = duplicate
+        self._children = utils.firstNonNone(children, {})
+        self._duplicate = utils.firstNonNone(duplicate, [])
 
     def addChild(self, file):
         if file.name in self._children:

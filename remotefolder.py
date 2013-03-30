@@ -8,7 +8,7 @@ import requestexecutor
 import os
 
 class RemoteFolder(folder.Folder):
-    def __init__(self, file, children = {}, duplicate = []):
+    def __init__(self, file, children = None, duplicate = None):
         super(RemoteFolder, self).__init__(file, children, duplicate)
 
     def withoutDuplicate(self):
