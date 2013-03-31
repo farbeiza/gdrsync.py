@@ -7,8 +7,10 @@ import logging
 logging.basicConfig()
 logging.getLogger().setLevel(config.PARSER.get('gdrsync', 'logLevel'))
 
+import apiclient.http
 import driveutils
 import localfolder
+import mimetypes
 import remotefolder
 import requestexecutor
 
@@ -171,7 +173,26 @@ class GDRsync(object):
     def update(self, localFile, remoteFile):
         LOGGER.info('%s: Updating file...', remoteFile.path)
 
-        return remoteFile
+        body = remoteFile.delegate.copy()
+        body['modifiedDate'] = driveutils.formatTime(localFile.modified)
+
+        (mimeType, encoding) = mimetypes.guess_type(localFile.delegate)
+        if mimeType is None:
+            mimeType = 'application/octet-stream'
+
+        media = apiclient.http.MediaFileUpload(localFile.delegate,
+                mimetype = mimeType, resumable = True)
+
+        def request():
+            return (driveutils.DRIVE.files()
+                    .update(fileId = remoteFile.delegate['id'],
+                            body = body, media_body = media,
+                            setModifiedDate = True)
+                    .execute())
+
+        file = requestexecutor.execute(request)
+
+        return remoteFile.withDelegate(file)
 
     def touch(self, localFile, remoteFile):
         LOGGER.debug('%s: Updating modified date...', remoteFile.path)
