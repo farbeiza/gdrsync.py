@@ -33,6 +33,7 @@ class GDRsync(object):
         remoteFolder = self.trash(localFolder, remoteFolder)
 
         remoteFolder = self.insertFolders(localFolder, remoteFolder)
+        remoteFolder = self.copyFiles(localFolder, remoteFolder)
 
         for localFile in localFolder.folders():
             remoteFile = remoteFolder.children[localFile.name]
@@ -124,5 +125,57 @@ class GDRsync(object):
         file = requestexecutor.execute(request)
 
         return remoteFile.withDelegate(file)
+
+    def copyFiles(self, localFolder, remoteFolder):
+        output = (remotefolder.RemoteFolder(remoteFolder.file)
+                .addChildren(remoteFolder.children.values()))
+        for localFile in localFolder.files():
+            remoteFile = remoteFolder.children.get(localFile.name)
+
+            fileOperation = self.fileOperation(localFile, remoteFile)
+            if fileOperation is None:
+                continue
+
+            if remoteFile is None:
+                remoteFile = remoteFolder.createRemoteFile(localFile.name)
+            remoteFile = fileOperation(localFile, remoteFile)
+
+            output.addChild(remoteFile)
+
+        return output
+
+    def fileOperation(self, localFile, remoteFile):
+        if remoteFile is None:
+            return self.insert
+        if remoteFile.size != localFile.size:
+            LOGGER.debug('%s: Different sizes.', remoteFile.path)
+
+            return self.update
+        if remoteFile.modified != localFile.modified:
+            if remoteFile.md5 != localFile.md5:
+                LOGGER.debug('%s: Different checksums.', remoteFile.path)
+
+                return self.update
+
+            return self.touch
+
+        LOGGER.debug('%s: Up to date.', remoteFile.path)
+
+        return None
+
+    def insert(self, localFile, remoteFile):
+        LOGGER.info('%s: Inserting file...', remoteFile.path)
+
+        return remoteFile
+
+    def update(self, localFile, remoteFile):
+        LOGGER.info('%s: Updating file...', remoteFile.path)
+
+        return remoteFile
+
+    def touch(self, localFile, remoteFile):
+        LOGGER.debug('%s: Updating modified date...', remoteFile.path)
+
+        return remoteFile
 
 GDRsync().sync(sys.argv[1], sys.argv[2])

@@ -32,7 +32,7 @@ class RemoteFile(object):
 
     @property
     def size(self):
-        return self._delegate['fileSize']
+        return int(self._delegate['fileSize'])
 
     @property
     def modified(self):
