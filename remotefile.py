@@ -36,7 +36,7 @@ class RemoteFile(object):
 
     @property
     def modified(self):
-        return self._delegate['modifiedDate']
+        return round(driveutils.parseTime(self._delegate['modifiedDate']))
 
     @property
     def md5(self):
@@ -66,7 +66,7 @@ class Factory(object):
         return RemoteFile(path, file)
 
     def fileId(self, path):
-        parent, name = os.path.split(path)
+        (parent, name) = os.path.split(path)
         if parent == path:
             return 'root'
 

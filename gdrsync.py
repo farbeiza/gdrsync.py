@@ -104,7 +104,7 @@ class GDRsync(object):
         for localFile in localFolder.folders():
             remoteFile = remoteFolder.children.get(localFile.name)
             if remoteFile is not None:
-                LOGGER.debug('%s: Existing folder.', remoteFile.path)
+                LOGGER.debug('%s: Existent folder.', remoteFile.path)
                 continue
 
             remoteFile = remoteFolder.createRemoteFile(localFile.name, 
@@ -148,12 +148,12 @@ class GDRsync(object):
         if remoteFile is None:
             return self.insert
         if remoteFile.size != localFile.size:
-            LOGGER.debug('%s: Different sizes.', remoteFile.path)
+            LOGGER.debug('%s: Different size.', remoteFile.path)
 
             return self.update
         if remoteFile.modified != localFile.modified:
             if remoteFile.md5 != localFile.md5:
-                LOGGER.debug('%s: Different checksums.', remoteFile.path)
+                LOGGER.debug('%s: Different checksum.', remoteFile.path)
 
                 return self.update
 
@@ -176,6 +176,16 @@ class GDRsync(object):
     def touch(self, localFile, remoteFile):
         LOGGER.debug('%s: Updating modified date...', remoteFile.path)
 
-        return remoteFile
+        body = {'modifiedDate': driveutils.formatTime(localFile.modified)}
+
+        def request():
+            return (driveutils.DRIVE.files()
+                    .patch(fileId = remoteFile.delegate['id'], body = body,
+                            setModifiedDate = True, fields = driveutils.FIELDS)
+                    .execute())
+
+        file = requestexecutor.execute(request)
+
+        return remoteFile.withDelegate(file)
 
 GDRsync().sync(sys.argv[1], sys.argv[2])
