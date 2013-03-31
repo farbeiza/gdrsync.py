@@ -168,7 +168,23 @@ class GDRsync(object):
     def insert(self, localFile, remoteFile):
         LOGGER.info('%s: Inserting file...', remoteFile.path)
 
-        return remoteFile
+        body = remoteFile.delegate.copy()
+        body['modifiedDate'] = driveutils.formatTime(localFile.modified)
+
+        (mimeType, encoding) = mimetypes.guess_type(localFile.delegate)
+        if mimeType is None:
+            mimeType = 'application/octet-stream'
+
+        media = apiclient.http.MediaFileUpload(localFile.delegate,
+                mimetype = mimeType, resumable = True)
+
+        def request():
+            return (driveutils.DRIVE.files().insert(body = body,
+                    media_body = media).execute())
+
+        file = requestexecutor.execute(request)
+
+        return remoteFile.withDelegate(file)
 
     def update(self, localFile, remoteFile):
         LOGGER.info('%s: Updating file...', remoteFile.path)
@@ -185,9 +201,8 @@ class GDRsync(object):
 
         def request():
             return (driveutils.DRIVE.files()
-                    .update(fileId = remoteFile.delegate['id'],
-                            body = body, media_body = media,
-                            setModifiedDate = True)
+                    .update(fileId = remoteFile.delegate['id'], body = body,
+                            media_body = media, setModifiedDate = True)
                     .execute())
 
         file = requestexecutor.execute(request)
