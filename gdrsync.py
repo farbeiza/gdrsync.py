@@ -7,12 +7,14 @@ import logging
 logging.basicConfig()
 logging.getLogger().setLevel(config.PARSER.get('gdrsync', 'logLevel'))
 
-import apiclient.http
+import binaryunit
 import driveutils
 import localfolder
-import mimetypes
 import remotefolder
 import requestexecutor
+
+import apiclient.http
+import mimetypes
 import sys
 import time
 
@@ -176,6 +178,13 @@ class GDRsync(object):
     def insert(self, localFile, remoteFile):
         LOGGER.info('%s: Inserting file...', remoteFile.path)
 
+        def createRequest(body, media):
+            return (driveutils.DRIVE.files().insert(body = body,
+                    media_body = media, fields = driveutils.FIELDS))
+
+        return self.copy(localFile, remoteFile, createRequest)
+
+    def copy(self, localFile, remoteFile, createRequest):
         body = remoteFile.delegate.copy()
         body['modifiedDate'] = driveutils.formatTime(localFile.modified)
 
@@ -187,8 +196,7 @@ class GDRsync(object):
                 mimetype = mimeType, chunksize = CHUNKSIZE, resumable = True)
 
         def request():
-            request = (driveutils.DRIVE.files().insert(body = body,
-                    media_body = media, fields = driveutils.FIELDS))
+            request = createRequest(body, media);
 
             start = time.time()
             while True:
@@ -213,21 +221,22 @@ class GDRsync(object):
 
         elapsed = time.time() - start
 
-        kiB = round(bytesUploaded / KIB)
+        b = binaryunit.BinaryUnit(bytesUploaded, 'B')
         progressPercentage = round(progress * PERCENTAGE)
         s = round(elapsed)
 
-        kiBs = self.kiBs(bytesUploaded, elapsed)
+        bS = binaryunit.BinaryUnit(self.bS(bytesUploaded, elapsed), 'B/s')
         eta = self.eta(elapsed, bytesUploaded, bytesTotal)
 
-        LOGGER.info('%s: %d%% (%dKiB / %ds = %dKiB/s) ETA: %ds', path,
-                progressPercentage, kiB, s, kiBs, eta)
+        LOGGER.info('%s: %d%% (%d%s / %ds = %d%s) ETA: %ds', path,
+                progressPercentage, round(b.value), b.unit, s,
+                round(bS.value), bS.unit, eta)
 
-    def kiBs(self, bytesUploaded, elapsed):
+    def bS(self, bytesUploaded, elapsed):
         if round(elapsed) == 0:
             return 0
 
-        return round((bytesUploaded / KIB) / elapsed)
+        return bytesUploaded / elapsed
 
     def eta(self, elapsed, bytesUploaded, bytesTotal):
         if bytesUploaded == 0:
@@ -241,37 +250,13 @@ class GDRsync(object):
     def update(self, localFile, remoteFile):
         LOGGER.info('%s: Updating file...', remoteFile.path)
 
-        body = remoteFile.delegate.copy()
-        body['modifiedDate'] = driveutils.formatTime(localFile.modified)
-
-        (mimeType, encoding) = mimetypes.guess_type(localFile.delegate)
-        if mimeType is None:
-            mimeType = DEFAULT_MIME_TYPE
-
-        media = apiclient.http.MediaFileUpload(localFile.delegate,
-                mimetype = mimeType, chunksize = CHUNKSIZE, resumable = True)
-
-        def request():
-            request = (driveutils.DRIVE.files()
+        def createRequest(body, media):
+            return (driveutils.DRIVE.files()
                     .update(fileId = remoteFile.delegate['id'], body = body,
                             media_body = media, setModifiedDate = True,
                             fields = driveutils.FIELDS))
 
-            start = time.time()
-            while True:
-                (progress, file) = request.next_chunk()
-                if file is not None:
-                    self.logProgress(remoteFile.path, start, localFile.size)
-
-                    return file
-
-                self.logProgress(remoteFile.path, start,
-                        progress.resumable_progress, progress.total_size,
-                        progress.progress())
-
-        file = requestexecutor.execute(request)
-
-        return remoteFile.withDelegate(file)
+        return self.copy(localFile, remoteFile, createRequest)
 
     def touch(self, localFile, remoteFile):
         LOGGER.debug('%s: Updating modified date...', remoteFile.path)
