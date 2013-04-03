@@ -26,6 +26,8 @@ REDIRECT_URI = 'urn:ietf:wg:oauth:2.0:oob'
 SEARCH_PARAMETER_RE = re.compile('(' + '[' + '\'\\\\' + ']' + ')')
 SEARCH_PARAMETER_REPLACEMENT = '\\\\\\1'
 
+US = 1e6
+
 LOGGER = logging.getLogger(__name__)
 
 def formatTime(seconds):
@@ -34,7 +36,7 @@ def formatTime(seconds):
 
 def parseTime(string):
     dateTime = datetime.datetime.strptime(string, DATE_TIME_FORMAT)
-    return calendar.timegm(dateTime.timetuple())
+    return calendar.timegm(dateTime.timetuple()) + (dateTime.microsecond / US)
 
 def credentials():
     refreshToken = config.PARSER.get('gdrsync', 'refreshToken')

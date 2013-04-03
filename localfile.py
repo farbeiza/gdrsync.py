@@ -1,6 +1,7 @@
 #!/usr/bin/python
 
 import hashlib
+import math
 import os
 
 MD5_BUFFER_SIZE = 16 * 1024
@@ -35,7 +36,9 @@ class LocalFile(object):
 
     @property
     def modified(self):
-        return os.path.getmtime(self._path)
+        # Milliseconds in modified time are not supported in all
+        # systems/languages
+        return math.floor(os.path.getmtime(self._path))
 
     @property
     def md5(self):
