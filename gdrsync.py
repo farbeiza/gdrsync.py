@@ -17,6 +17,7 @@ import sys
 import time
 
 MIB = 0x100000
+CHUNKSIZE = 1 * MIB
 
 KIB = float(0x400)
 PERCENTAGE = 100.0
@@ -183,7 +184,7 @@ class GDRsync(object):
             mimeType = DEFAULT_MIME_TYPE
 
         media = apiclient.http.MediaFileUpload(localFile.delegate,
-                mimetype = mimeType, chunksize = 1 * MIB, resumable = True)
+                mimetype = mimeType, chunksize = CHUNKSIZE, resumable = True)
 
         def request():
             request = (driveutils.DRIVE.files().insert(body = body,
@@ -198,37 +199,44 @@ class GDRsync(object):
                     return file
 
                 self.logProgress(remoteFile.path, start,
-                        progress.resumable_progress, progress.progress())
+                        progress.resumable_progress, progress.total_size,
+                        progress.progress())
 
         file = requestexecutor.execute(request)
 
         return remoteFile.withDelegate(file)
 
-    def logProgress(self, path, start, numBytesUploaded, progress = 1.0):
+    def logProgress(self, path, start, bytesUploaded, bytesTotal = None,
+            progress = 1.0):
+        if bytesTotal is None:
+            bytesTotal = bytesUploaded
+
         elapsed = time.time() - start
 
-        kibiBytes = round(numBytesUploaded / KIB)
+        kiB = round(bytesUploaded / KIB)
         progressPercentage = round(progress * PERCENTAGE)
-        seconds = round(elapsed)
+        s = round(elapsed)
 
-        kibiBytesPerSecond = self.kibiBytesPerSecond(numBytesUploaded, elapsed)
-        eta = self.eta(elapsed, progress)
+        kiBs = self.kiBs(bytesUploaded, elapsed)
+        eta = self.eta(elapsed, bytesUploaded, bytesTotal)
 
-        LOGGER.info('%s: %d%% (%dKiB / %ds = %dKiB/s) ETA: %ds',
-                path, progressPercentage, kibiBytes, seconds,
-                kibiBytesPerSecond, eta)
+        LOGGER.info('%s: %d%% (%dKiB / %ds = %dKiB/s) ETA: %ds', path,
+                progressPercentage, kiB, s, kiBs, eta)
 
-    def kibiBytesPerSecond(self, numBytesUploaded, elapsed):
+    def kiBs(self, bytesUploaded, elapsed):
         if round(elapsed) == 0:
             return 0
 
-        return round((numBytesUploaded / KIB) / elapsed)
+        return round((bytesUploaded / KIB) / elapsed)
 
-    def eta(self, elapsed, progress):
-        if round(progress * PERCENTAGE) == 0:
+    def eta(self, elapsed, bytesUploaded, bytesTotal):
+        if bytesUploaded == 0:
             return 0
+        
+        bS = bytesUploaded / elapsed
+        finish = bytesTotal / bS
 
-        return round(elapsed * ((1.0 / progress) - 1.0))
+        return round(finish - elapsed)
 
     def update(self, localFile, remoteFile):
         LOGGER.info('%s: Updating file...', remoteFile.path)
@@ -241,7 +249,7 @@ class GDRsync(object):
             mimeType = DEFAULT_MIME_TYPE
 
         media = apiclient.http.MediaFileUpload(localFile.delegate,
-                mimetype = mimeType, chunksize = 1 * MIB, resumable = True)
+                mimetype = mimeType, chunksize = CHUNKSIZE, resumable = True)
 
         def request():
             request = (driveutils.DRIVE.files()
@@ -258,7 +266,8 @@ class GDRsync(object):
                     return file
 
                 self.logProgress(remoteFile.path, start,
-                        progress.resumable_progress, progress.progress())
+                        progress.resumable_progress, progress.total_size,
+                        progress.progress())
 
         file = requestexecutor.execute(request)
 
