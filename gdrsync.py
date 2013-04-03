@@ -4,8 +4,7 @@ import config
 
 import logging
 
-logging.basicConfig()
-logging.getLogger().setLevel(config.PARSER.get('gdrsync', 'logLevel'))
+logging.basicConfig(level = config.PARSER.get('gdrsync', 'logLevel'))
 
 import binaryunit
 import driveutils
