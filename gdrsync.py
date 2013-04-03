@@ -5,6 +5,8 @@ import config
 import logging
 
 logging.basicConfig(level = config.PARSER.get('gdrsync', 'logLevel'))
+logging.getLogger('apiclient.discovery').setLevel(logging.WARNING)
+logging.getLogger('oauth2client.util').setLevel(logging.ERROR)
 
 import binaryunit
 import driveutils
