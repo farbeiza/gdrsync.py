@@ -104,7 +104,8 @@ class GDRsync(object):
                 output.addChild(remoteFile)
                 continue
 
-            LOGGER.debug('%s: Different type.', remoteFile.path)
+            LOGGER.debug('%s: Different type: %s != %s.', remoteFile.path,
+                    localFile.folder, remoteFile.folder)
 
             remoteFile = self.trashFile(remoteFile)
 
@@ -160,14 +161,19 @@ class GDRsync(object):
         if remoteFile is None:
             return self.insert
         if remoteFile.size != localFile.size:
-            LOGGER.debug('%s: Different size.', remoteFile.path)
+            LOGGER.debug('%s: Different size: %d != %d.', remoteFile.path,
+                    localFile.size, remoteFile.size)
 
             return self.update
         if remoteFile.modified != localFile.modified:
             if remoteFile.md5 != localFile.md5:
-                LOGGER.debug('%s: Different checksum.', remoteFile.path)
+                LOGGER.debug('%s: Different checksum: %s != %s.',
+                        remoteFile.path, localFile.md5, remoteFile.md5)
 
                 return self.update
+
+            LOGGER.debug("%s: Different modified time: %f != %f.",
+                    remoteFile.path, localFile.modified, remoteFile.modified);
 
             return self.touch
 
