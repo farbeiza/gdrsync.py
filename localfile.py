@@ -35,7 +35,7 @@ class LocalFile(object):
 
     @property
     def modified(self):
-        return round(os.path.getmtime(self._path))
+        return os.path.getmtime(self._path)
 
     @property
     def md5(self):

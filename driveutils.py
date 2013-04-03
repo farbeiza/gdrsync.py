@@ -3,6 +3,7 @@
 import config
 
 import apiclient.discovery
+import calendar
 import datetime
 import httplib2
 import logging
@@ -28,12 +29,12 @@ SEARCH_PARAMETER_REPLACEMENT = '\\\\\\1'
 LOGGER = logging.getLogger(__name__)
 
 def formatTime(seconds):
-    dateTime = datetime.datetime.fromtimestamp(seconds)
+    dateTime = datetime.datetime.utcfromtimestamp(seconds)
     return dateTime.strftime(DATE_TIME_FORMAT)
 
 def parseTime(string):
     dateTime = datetime.datetime.strptime(string, DATE_TIME_FORMAT)
-    return time.mktime(dateTime.timetuple())
+    return calendar.timegm(dateTime.timetuple())
 
 def credentials():
     refreshToken = config.PARSER.get('gdrsync', 'refreshToken')

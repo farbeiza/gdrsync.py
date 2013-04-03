@@ -36,7 +36,7 @@ class RemoteFile(object):
 
     @property
     def modified(self):
-        return round(driveutils.parseTime(self._delegate['modifiedDate']))
+        return driveutils.parseTime(self._delegate['modifiedDate'])
 
     @property
     def md5(self):
