@@ -37,19 +37,18 @@ class Factory(object):
         def request():
             remoteFolder = RemoteFolder(file)
 
-            list = (driveutils.DRIVE.files()
-                    .list(q = query, fields = CHILDREN_FIELDS))
             pageToken = None
             while True:
-                if pageToken is not None:
-                    list['pageToken'] = pageToken
+                list = (driveutils.DRIVE.files()
+                        .list(q = query, fields = CHILDREN_FIELDS,
+                                pageToken = pageToken))
 
                 files = list.execute()
                 for child in files['items']:
                     remoteFolder.addChild(remotefile.fromParent(file, child))
 
                 pageToken = files.get('nextPageToken')
-                if not pageToken:
+                if pageToken is None:
                     break
 
             return remoteFolder
