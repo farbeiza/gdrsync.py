@@ -15,8 +15,6 @@ DATE_TIME_FORMAT = '%Y-%m-%dT%H:%M:%S.%fZ'
 
 FIELDS = 'id, title, mimeType, modifiedDate, md5Checksum, fileSize'
 
-MIME_FOLDER = 'application/vnd.google-apps.folder'
-
 CLIENT_ID = '387402765904.apps.googleusercontent.com'
 CLIENT_SECRET = 'WTj0xKbLAFjDqUeT2HGDZHCi'
 

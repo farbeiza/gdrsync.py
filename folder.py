@@ -4,7 +4,7 @@ import file
 import utils
 
 def empty(file):
-    return EmptyFolder(file)
+    return Folder(file)
 
 class Folder(object):
     def __init__(self, file, children = None, duplicate = None):
@@ -46,18 +46,14 @@ class Folder(object):
     def folders(self):
         return filter(lambda f: f.folder, self._children.values())
 
-class EmptyFolder(Folder):
-    def __init__(self, file):
-        super(EmptyFolder, self).__init__(file)
-
-    def addChild(self, file):
-        return self
-
     def withoutChildren(self):
-        return self
+        return Folder(self._file)
 
     def withoutDuplicate(self):
-        return self
+        return Folder(self._file, self._children)
 
     def createFile(self, name):
         return file.fromParent(self.file, name)
+
+    def createFolder(self, name):
+        return file.fromParent(self.file, name, True)

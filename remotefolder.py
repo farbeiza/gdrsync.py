@@ -26,6 +26,9 @@ class RemoteFolder(folder.Folder):
 
         return remotefile.fromParent(self.file, file)
 
+    def createFolder(self, name):
+        return self.createFile(name, remotefile.MIME_FOLDER)
+
 CHILDREN_QUERY = '(\'%(parents)s\' in parents) and (not trashed)'
 
 CHILDREN_FIELDS = 'nextPageToken, items(%s)' % driveutils.FIELDS

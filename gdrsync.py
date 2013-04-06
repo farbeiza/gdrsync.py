@@ -148,8 +148,7 @@ class GDRsync(object):
                 LOGGER.debug('%s: Existent folder.', remoteFile.path)
                 continue
 
-            remoteFile = remoteFolder.createFile(localFile.name, 
-                    driveutils.MIME_FOLDER)
+            remoteFile = remoteFolder.createFolder(localFile.name)
             remoteFile = self.insertFolder(localFile, remoteFile)
 
             output.addChild(remoteFile)

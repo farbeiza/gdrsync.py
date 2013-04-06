@@ -1,6 +1,7 @@
 #!/usr/bin/python
 
 import file
+import utils
 
 import hashlib
 import math
@@ -17,16 +18,15 @@ def fromParentPath(parentPath, path):
     return LocalFile(path)
 
 class LocalFile(file.File):
-    def __init__(self, path):
-        super(LocalFile, self).__init__(path)
+    def __init__(self, path, folder = None):
+        name = os.path.basename(path)
+        folder = utils.firstNonNone(folder, os.path.isdir(path))
+
+        super(LocalFile, self).__init__(path, name, folder)
 
     @property
     def delegate(self):
         return self.path
-
-    @property
-    def name(self):
-        return os.path.basename(self.path)
 
     @property
     def size(self):
@@ -50,10 +50,6 @@ class LocalFile(file.File):
                 md5.update(data)
 
         return md5.hexdigest()
-
-    @property
-    def folder(self):
-        return os.path.isdir(self.path)
 
     @property
     def exists(self):

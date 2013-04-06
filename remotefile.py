@@ -3,8 +3,11 @@
 import driveutils
 import file
 import requestexecutor
+import utils
 
 import os
+
+MIME_FOLDER = 'application/vnd.google-apps.folder'
 
 def fromParent(parent, delegate):
     return fromParentPath(parent.path, delegate)
@@ -15,18 +18,18 @@ def fromParentPath(parentPath, delegate):
     return RemoteFile(path, delegate)
 
 class RemoteFile(file.File):
-    def __init__(self, path, delegate):
-        super(RemoteFile, self).__init__(path)
+    def __init__(self, path, delegate, folder = None):
+        name = delegate['title']
+        folder = utils.firstNonNone(folder,
+                delegate.get('mimeType') == MIME_FOLDER)
+
+        super(RemoteFile, self).__init__(path, name, folder)
 
         self._delegate = delegate
 
     @property
     def delegate(self):
         return self._delegate
-
-    @property
-    def name(self):
-        return self._delegate['title']
 
     @property
     def size(self):
@@ -39,10 +42,6 @@ class RemoteFile(file.File):
     @property
     def md5(self):
         return self._delegate['md5Checksum']
-
-    @property
-    def folder(self):
-        return self._delegate['mimeType'] == driveutils.MIME_FOLDER
 
     @property
     def exists(self):
