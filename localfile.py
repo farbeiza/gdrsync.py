@@ -19,6 +19,7 @@ def fromParentPath(parentPath, path):
 
 class LocalFile(file.File):
     def __init__(self, path, folder = None):
+        path = unicode(path)
         name = os.path.basename(path)
         folder = utils.firstNonNone(folder, os.path.isdir(path))
 

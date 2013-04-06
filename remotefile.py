@@ -19,6 +19,7 @@ def fromParentPath(parentPath, delegate):
 
 class RemoteFile(file.File):
     def __init__(self, path, delegate, folder = None):
+        parent = unicode(path)
         name = delegate['title']
         folder = utils.firstNonNone(folder,
                 delegate.get('mimeType') == MIME_FOLDER)
