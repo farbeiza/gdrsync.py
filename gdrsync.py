@@ -4,7 +4,10 @@ import config
 
 import logging
 
-logging.basicConfig(level = config.PARSER.get('gdrsync', 'logLevel'))
+logging.basicConfig(format = '%(asctime)s: %(levelname)s: %(name)s: %(message)s',
+        level = config.PARSER.get('gdrsync', 'logLevel'))
+
+
 logging.getLogger('apiclient.discovery').setLevel(logging.WARNING)
 logging.getLogger('oauth2client.util').setLevel(logging.ERROR)
 
