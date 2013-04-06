@@ -31,6 +31,7 @@ if args.verbosity < len(LOG_LEVELS):
 import binaryunit
 import config
 import driveutils
+import folder
 import localfolder
 import remotefolder
 import requestexecutor
@@ -77,10 +78,8 @@ class GDRsync(object):
         for localFile in localFolder.folders():
             remoteFile = remoteFolder.children[localFile.name]
 
-            childLocalFolder = self.localFolderFactory.create(localFile)
-            childRemoteFolder = self.remoteFolderFactory.create(remoteFile)
-
-            self._sync(childLocalFolder, childRemoteFolder)
+            self._sync(self.createLocalFolder(localFile),
+                    self.createRemoteFolder(remoteFile))
 
     def trash(self, localFolder, remoteFolder):
         remoteFolder = self.trashDuplicate(localFolder, remoteFolder)
@@ -113,7 +112,7 @@ class GDRsync(object):
         return remoteFile.withDelegate(file)
 
     def trashExtraneous(self, localFolder, remoteFolder):
-        output = remotefolder.RemoteFolder(remoteFolder.file)
+        output = remoteFolder.withoutChildren()
         for remoteFile in remoteFolder.children.values():
             if remoteFile.name in localFolder.children:
                 output.addChild(remoteFile)
@@ -126,7 +125,7 @@ class GDRsync(object):
         return output
 
     def trashDifferentType(self, localFolder, remoteFolder):
-        output = remotefolder.RemoteFolder(remoteFolder.file)
+        output = remoteFolder.withoutChildren()
         for remoteFile in remoteFolder.children.values():
             localFile = localFolder.children[remoteFile.name]
             if localFile.folder == remoteFile.folder:
@@ -141,7 +140,7 @@ class GDRsync(object):
         return output
 
     def insertFolders(self, localFolder, remoteFolder):
-        output = (remotefolder.RemoteFolder(remoteFolder.file)
+        output = (remoteFolder.withoutChildren()
                 .addChildren(remoteFolder.children.values()))
         for localFile in localFolder.folders():
             remoteFile = remoteFolder.children.get(localFile.name)
@@ -149,7 +148,7 @@ class GDRsync(object):
                 LOGGER.debug('%s: Existent folder.', remoteFile.path)
                 continue
 
-            remoteFile = remoteFolder.createRemoteFile(localFile.name, 
+            remoteFile = remoteFolder.createFile(localFile.name, 
                     driveutils.MIME_FOLDER)
             remoteFile = self.insertFolder(localFile, remoteFile)
 
@@ -171,7 +170,7 @@ class GDRsync(object):
         return remoteFile.withDelegate(file)
 
     def copyFiles(self, localFolder, remoteFolder):
-        output = (remotefolder.RemoteFolder(remoteFolder.file)
+        output = (remoteFolder.withoutChildren()
                 .addChildren(remoteFolder.children.values()))
         for localFile in localFolder.files():
             remoteFile = remoteFolder.children.get(localFile.name)
@@ -181,7 +180,7 @@ class GDRsync(object):
                 continue
 
             if remoteFile is None:
-                remoteFile = remoteFolder.createRemoteFile(localFile.name)
+                remoteFile = remoteFolder.createFile(localFile.name)
             remoteFile = fileOperation(localFile, remoteFile)
 
             output.addChild(remoteFile)
@@ -315,5 +314,14 @@ class GDRsync(object):
         file = requestexecutor.execute(request)
 
         return remoteFile.withDelegate(file)
+
+    def createLocalFolder(self, localFile):
+        return self.localFolderFactory.create(localFile)
+
+    def createRemoteFolder(self, remoteFile):
+        if self.args.dryRun and (not remoteFile.exists):
+            return folder.empty(remoteFile)
+
+        return self.remoteFolderFactory.create(remoteFile)
 
 GDRsync(args).sync()

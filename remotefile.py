@@ -1,6 +1,7 @@
 #!/usr/bin/python
 
 import driveutils
+import file
 import requestexecutor
 
 import os
@@ -13,18 +14,15 @@ def fromParentPath(parentPath, delegate):
 
     return RemoteFile(path, delegate)
 
-class RemoteFile(object):
+class RemoteFile(file.File):
     def __init__(self, path, delegate):
-        self._path = path
+        super(RemoteFile, self).__init__(path)
+
         self._delegate = delegate
 
     @property
     def delegate(self):
         return self._delegate
-
-    @property
-    def path(self):
-        return self._path
 
     @property
     def name(self):
@@ -46,8 +44,12 @@ class RemoteFile(object):
     def folder(self):
         return self._delegate['mimeType'] == driveutils.MIME_FOLDER
 
+    @property
+    def exists(self):
+        return 'id' in self._delegate
+
     def withDelegate(self, delegate):
-        return RemoteFile(self._path, delegate)
+        return RemoteFile(self.path, delegate)
 
 FILE_ID_QUERY = '(title = \'%(title)s\') and (not trashed)'
 
@@ -71,6 +73,9 @@ class Factory(object):
             return 'root'
 
         parentId = self.fileId(parent)
+        if parentId is None:
+            return None
+
         query = FILE_ID_QUERY % {'title' : driveutils.escapeQueryParameter(name)}
 
         def request():

@@ -11,10 +11,13 @@ class RemoteFolder(folder.Folder):
     def __init__(self, file, children = None, duplicate = None):
         super(RemoteFolder, self).__init__(file, children, duplicate)
 
+    def withoutChildren(self):
+        return RemoteFolder(self._file)
+
     def withoutDuplicate(self):
         return RemoteFolder(self._file, self._children)
 
-    def createRemoteFile(self, name, mimeType = None):
+    def createFile(self, name, mimeType = None):
         file = {'title': name}
         if mimeType is not None:
             file['mimeType'] = mimeType

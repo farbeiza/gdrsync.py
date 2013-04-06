@@ -1,5 +1,7 @@
 #!/usr/bin/python
 
+import file
+
 import hashlib
 import math
 import os
@@ -14,35 +16,31 @@ def fromParentPath(parentPath, path):
 
     return LocalFile(path)
 
-class LocalFile(object):
+class LocalFile(file.File):
     def __init__(self, path):
-        self._path = path
+        super(LocalFile, self).__init__(path)
 
     @property
     def delegate(self):
-        return self._path
-
-    @property
-    def path(self):
-        return self._path
+        return self.path
 
     @property
     def name(self):
-        return os.path.basename(self._path)
+        return os.path.basename(self.path)
 
     @property
     def size(self):
-        return os.path.getsize(self._path)
+        return os.path.getsize(self.path)
 
     @property
     def modified(self):
         # Milliseconds in modified time are not supported in all
         # systems/languages
-        return math.floor(os.path.getmtime(self._path))
+        return math.floor(os.path.getmtime(self.path))
 
     @property
     def md5(self):
-        with open(self._path, mode = 'rb') as file:
+        with open(self.path, mode = 'rb') as file:
             md5 = hashlib.md5()
             while True:
                 data = file.read(MD5_BUFFER_SIZE)
@@ -55,7 +53,11 @@ class LocalFile(object):
 
     @property
     def folder(self):
-        return os.path.isdir(self._path)
+        return os.path.isdir(self.path)
+
+    @property
+    def exists(self):
+        return os.path.exists(self.path)
 
 class Factory(object):
     def create(self, path):
