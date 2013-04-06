@@ -1,17 +1,35 @@
 #!/usr/bin/python
 
-import config
+import argparse
+
+parser = argparse.ArgumentParser(description = 'Copy files from a local system'
+        ' to a Google drive repository.')
+
+parser.add_argument('localPath', help = 'local path', metavar = 'LOCAL')
+parser.add_argument('remotePath', help = 'remote path', metavar = 'REMOTE')
+
+parser.add_argument('-n', action = 'store_true',
+        help = 'perform a trial run with no changes made', dest = 'dryRun')
+parser.add_argument('-r', action = 'store_true',
+        help = 'recurse into directories', dest = 'recursive')
+parser.add_argument('-v', action='count', default = 0,
+        help = 'increase verbosity', dest = 'verbosity')
+
+args = parser.parse_args()
 
 import logging
 
+LOG_LEVELS = [logging.WARNING, logging.INFO, logging.DEBUG]
+LOG_LEVEL = LOG_LEVELS[min(args.verbosity, len(LOG_LEVELS) - 1)]
+
 logging.basicConfig(format = '%(asctime)s: %(levelname)s: %(name)s: %(message)s',
-        level = config.PARSER.get('gdrsync', 'logLevel'))
-
-
-logging.getLogger('apiclient.discovery').setLevel(logging.WARNING)
-logging.getLogger('oauth2client.util').setLevel(logging.ERROR)
+        level = LOG_LEVEL)
+if args.verbosity < len(LOG_LEVELS):
+    logging.getLogger('apiclient.discovery').setLevel(logging.WARNING)
+    logging.getLogger('oauth2client.util').setLevel(logging.ERROR)
 
 import binaryunit
+import config
 import driveutils
 import localfolder
 import remotefolder
@@ -33,15 +51,17 @@ DEFAULT_MIME_TYPE = 'application/octet-stream'
 LOGGER = logging.getLogger(__name__)
 
 class GDRsync(object):
-    def __init__(self):
+    def __init__(self, args):
+        self.args = args
+
         self.localFolderFactory = localfolder.Factory()
         self.remoteFolderFactory = remotefolder.Factory()
 
-    def sync(self, localPath, remotePath):
+    def sync(self):
         LOGGER.info('Starting...')
 
-        self._sync(self.localFolderFactory.create(localPath),
-                self.remoteFolderFactory.create(remotePath))
+        self._sync(self.localFolderFactory.create(self.args.localPath),
+                self.remoteFolderFactory.create(self.args.remotePath))
 
         LOGGER.info('End.')
 
@@ -50,6 +70,9 @@ class GDRsync(object):
 
         remoteFolder = self.insertFolders(localFolder, remoteFolder)
         remoteFolder = self.copyFiles(localFolder, remoteFolder)
+
+        if not self.args.recursive:
+            return
 
         for localFile in localFolder.folders():
             remoteFile = remoteFolder.children[localFile.name]
@@ -76,6 +99,8 @@ class GDRsync(object):
 
     def trashFile(self, remoteFile):
         LOGGER.info('%s: Trashing file...', remoteFile.path)
+        if self.args.dryRun:
+            return remoteFile
 
         def request():
             return (driveutils.DRIVE.files()
@@ -134,6 +159,8 @@ class GDRsync(object):
 
     def insertFolder(self, localFile, remoteFile):
         LOGGER.info('%s: Inserting folder...', remoteFile.path)
+        if self.args.dryRun:
+            return remoteFile
 
         def request():
             return (driveutils.DRIVE.files().insert(body = remoteFile.delegate,
@@ -187,6 +214,8 @@ class GDRsync(object):
 
     def insert(self, localFile, remoteFile):
         LOGGER.info('%s: Inserting file...', remoteFile.path)
+        if self.args.dryRun:
+            return remoteFile
 
         def createRequest(body, media):
             return (driveutils.DRIVE.files().insert(body = body,
@@ -259,6 +288,8 @@ class GDRsync(object):
 
     def update(self, localFile, remoteFile):
         LOGGER.info('%s: Updating file...', remoteFile.path)
+        if self.args.dryRun:
+            return remoteFile
 
         def createRequest(body, media):
             return (driveutils.DRIVE.files()
@@ -270,6 +301,8 @@ class GDRsync(object):
 
     def touch(self, localFile, remoteFile):
         LOGGER.debug('%s: Updating modified date...', remoteFile.path)
+        if self.args.dryRun:
+            return remoteFile
 
         body = {'modifiedDate': driveutils.formatTime(localFile.modified)}
 
@@ -283,4 +316,4 @@ class GDRsync(object):
 
         return remoteFile.withDelegate(file)
 
-GDRsync().sync(sys.argv[1], sys.argv[2])
+GDRsync(args).sync()
