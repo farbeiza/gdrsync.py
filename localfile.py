@@ -7,7 +7,7 @@ import hashlib
 import math
 import os
 
-MD5_BUFFER_SIZE = 16 * 1024
+MD5_BUFFER_SIZE = 16 * utils.KIB
 
 def fromParent(parent, path):
     return fromParentPath(parent.path, path)

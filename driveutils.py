@@ -1,6 +1,7 @@
 #!/usr/bin/python
 
 import config
+import utils
 
 import apiclient.discovery
 import calendar
@@ -10,6 +11,8 @@ import logging
 import oauth2client.client
 import re
 import time
+
+TIMEOUT = 60 # seconds
 
 DATE_TIME_FORMAT = '%Y-%m-%dT%H:%M:%S.%fZ'
 
@@ -24,8 +27,6 @@ REDIRECT_URI = 'urn:ietf:wg:oauth:2.0:oob'
 SEARCH_PARAMETER_RE = re.compile('(' + '[' + '\'\\\\' + ']' + ')')
 SEARCH_PARAMETER_REPLACEMENT = '\\\\\\1'
 
-US = 1e6
-
 LOGGER = logging.getLogger(__name__)
 
 def formatTime(seconds):
@@ -34,7 +35,9 @@ def formatTime(seconds):
 
 def parseTime(string):
     dateTime = datetime.datetime.strptime(string, DATE_TIME_FORMAT)
-    return calendar.timegm(dateTime.timetuple()) + (dateTime.microsecond / US)
+
+    return (calendar.timegm(dateTime.timetuple())
+            + (dateTime.microsecond / utils.US))
 
 def credentials():
     refreshToken = config.PARSER.get('gdrsync', 'refreshToken')
@@ -60,7 +63,7 @@ def credentials():
 
     return credentials
 
-http = credentials().authorize(httplib2.Http())
+http = credentials().authorize(httplib2.Http(timeout = TIMEOUT))
 
 DRIVE = apiclient.discovery.build('drive', 'v2', http = http)
 

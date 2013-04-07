@@ -1,6 +1,8 @@
 #!/usr/bin/python
 
-BASE = float(0x400)
+import utils
+
+BASE = float(utils.KIB)
 MAX_NUMBER = 10000.0
 PREFIXES = ["", "Ki", "Mi", "Gi", "Ti", "Pi", "Ei", "Zi", "Yi"]
 

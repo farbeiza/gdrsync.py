@@ -36,16 +36,15 @@ import folder
 import localfolder
 import remotefolder
 import requestexecutor
+import utils
 
 import apiclient.http
 import mimetypes
 import sys
 import time
 
-MIB = 0x100000
-CHUNKSIZE = 1 * MIB
+CHUNKSIZE = 1 * utils.MIB
 
-KIB = float(0x400)
 PERCENTAGE = 100.0
 
 DEFAULT_MIME_TYPE = 'application/octet-stream'
