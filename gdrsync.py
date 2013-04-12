@@ -9,6 +9,8 @@ parser = argparse.ArgumentParser(description = 'Copy files from a local system'
 parser.add_argument('localPath', help = 'local path', metavar = 'LOCAL')
 parser.add_argument('remotePath', help = 'remote path', metavar = 'REMOTE')
 
+parser.add_argument('-c', action = 'store_true',
+        help = 'skip based on checksum, not mod-time & size', dest = 'checksum')
 parser.add_argument('-n', action = 'store_true',
         help = 'perform a trial run with no changes made', dest = 'dryRun')
 parser.add_argument('-r', action = 'store_true',
@@ -189,26 +191,62 @@ class GDRsync(object):
     def fileOperation(self, localFile, remoteFile):
         if remoteFile is None:
             return self.insert
-        if remoteFile.size != localFile.size:
-            LOGGER.debug('%s: Different size: %d != %d.', remoteFile.path,
-                    localFile.size, remoteFile.size)
 
-            return self.update
-        if remoteFile.modified != localFile.modified:
-            if remoteFile.md5 != localFile.md5:
-                LOGGER.debug('%s: Different checksum: %s != %s.',
-                        remoteFile.path, localFile.md5, remoteFile.md5)
+        if self.args.checksum:
+            fileOperation = self.checkChecksum(localFile, remoteFile)
+            if fileOperation is not None:
+                return fileOperation
 
-                return self.update
+            fileOperation = self.checkSize(localFile, remoteFile)
+            if fileOperation is not None:
+                return fileOperation
 
-            LOGGER.debug("%s: Different modified time: %f != %f.",
-                    remoteFile.path, localFile.modified, remoteFile.modified);
+            fileOperation = self.checkModified(localFile, remoteFile)
+            if fileOperation is not None:
+                return fileOperation
+        else:
+            fileOperation = self.checkSize(localFile, remoteFile)
+            if fileOperation is not None:
+                return fileOperation
 
-            return self.touch
+            fileOperation = self.checkModified(localFile, remoteFile)
+            if fileOperation is not None:
+                return fileOperation
 
         LOGGER.debug('%s: Up to date.', remoteFile.path)
 
         return None
+
+    def checkChecksum(self, localFile, remoteFile):
+        if remoteFile.md5 == localFile.md5:
+            return None
+
+        LOGGER.debug('%s: Different checksum: %s != %s.', remoteFile.path,
+                localFile.md5, remoteFile.md5)
+
+        return self.update
+
+    def checkSize(self, localFile, remoteFile):
+        if remoteFile.size == localFile.size:
+            return None
+
+        LOGGER.debug('%s: Different size: %d != %d.', remoteFile.path,
+                localFile.size, remoteFile.size)
+
+        return self.update
+
+    def checkModified(self, localFile, remoteFile):
+        if remoteFile.modified == localFile.modified:
+            return None
+
+        fileOperation = self.checkChecksum(localFile, remoteFile)
+        if fileOperation is not None:
+            return fileOperation
+
+        LOGGER.debug("%s: Different modified time: %f != %f.", remoteFile.path,
+                localFile.modified, remoteFile.modified);
+
+        return self.touch
 
     def insert(self, localFile, remoteFile):
         LOGGER.info('%s: Inserting file...', remoteFile.path)
