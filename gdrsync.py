@@ -60,16 +60,29 @@ class GDRsync(object):
         self.localFolderFactory = localfolder.Factory()
         self.remoteFolderFactory = remotefolder.Factory()
 
+        self.copiedFiles = 0
+        self.copiedSize = 0
+        self.copiedTime = 0
+
+        self.checkedFiles = 0
+        self.checkedSize = 0
+
+        self.totalFiles = 0
+
     def sync(self):
         LOGGER.info('Starting...')
 
         self._sync(self.localFolderFactory.create(self.args.localPath),
                 self.remoteFolderFactory.create(self.args.remotePath))
 
+        self.logResult();
+
         LOGGER.info('End.')
 
     def _sync(self, localFolder, remoteFolder):
         remoteFolder = self.trash(localFolder, remoteFolder)
+
+        self.totalFiles += len(localFolder.children)
 
         remoteFolder = self.insertFolders(localFolder, remoteFolder)
         remoteFolder = self.copyFiles(localFolder, remoteFolder)
@@ -145,9 +158,12 @@ class GDRsync(object):
         output = (remoteFolder.withoutChildren()
                 .addChildren(remoteFolder.children.values()))
         for localFile in localFolder.folders():
+            self.checkedFiles += 1
+
             remoteFile = remoteFolder.children.get(localFile.name)
             if remoteFile is not None:
-                LOGGER.debug('%s: Existent folder.', remoteFile.path)
+                LOGGER.debug('%s: Existent folder. (Checked %d/%d files)',
+                        remoteFile.path, self.checkedFiles, self.totalFiles)
                 continue
 
             remoteFile = remoteFolder.createFolder(localFile.name)
@@ -158,7 +174,8 @@ class GDRsync(object):
         return output
 
     def insertFolder(self, localFile, remoteFile):
-        LOGGER.info('%s: Inserting folder...', remoteFile.path)
+        LOGGER.info('%s: Inserting folder... (Checked %d/%d files)',
+                remoteFile.path, self.checkedFiles, self.totalFiles)
         if self.args.dryRun:
             return remoteFile
 
@@ -174,6 +191,9 @@ class GDRsync(object):
         output = (remoteFolder.withoutChildren()
                 .addChildren(remoteFolder.children.values()))
         for localFile in localFolder.files():
+            self.checkedFiles += 1
+            self.checkedSize += localFile.size
+
             remoteFile = remoteFolder.children.get(localFile.name)
 
             fileOperation = self.fileOperation(localFile, remoteFile)
@@ -213,7 +233,8 @@ class GDRsync(object):
             if fileOperation is not None:
                 return fileOperation
 
-        LOGGER.debug('%s: Up to date.', remoteFile.path)
+        LOGGER.debug('%s: Up to date. (Checked %d/%d files)', remoteFile.path,
+                self.checkedFiles, self.totalFiles)
 
         return None
 
@@ -244,12 +265,13 @@ class GDRsync(object):
             return fileOperation
 
         LOGGER.debug("%s: Different modified time: %f != %f.", remoteFile.path,
-                localFile.modified, remoteFile.modified);
+                localFile.modified, remoteFile.modified)
 
         return self.touch
 
     def insert(self, localFile, remoteFile):
-        LOGGER.info('%s: Inserting file...', remoteFile.path)
+        LOGGER.info('%s: Inserting file... (Checked %d/%d files)',
+                remoteFile.path, self.checkedFiles, self.totalFiles)
         if self.args.dryRun:
             return remoteFile
 
@@ -271,7 +293,7 @@ class GDRsync(object):
                 mimetype = mimeType, chunksize = CHUNKSIZE, resumable = True)
 
         def request():
-            request = createRequest(body, media);
+            request = createRequest(body, media)
 
             start = time.time()
             while True:
@@ -283,14 +305,14 @@ class GDRsync(object):
 
                 self.logProgress(remoteFile.path, start,
                         progress.resumable_progress, progress.total_size,
-                        progress.progress())
+                        progress.progress(), False)
 
         file = requestexecutor.execute(request)
 
         return remoteFile.withDelegate(file)
 
     def logProgress(self, path, start, bytesUploaded, bytesTotal = None,
-            progress = 1.0):
+            progress = 1.0, end = True):
         if bytesTotal is None:
             bytesTotal = bytesUploaded
 
@@ -301,11 +323,21 @@ class GDRsync(object):
         s = round(elapsed)
 
         bS = binaryunit.BinaryUnit(self.bS(bytesUploaded, elapsed), 'B/s')
-        eta = self.eta(elapsed, bytesUploaded, bytesTotal)
 
-        LOGGER.info('%s: %d%% (%d%s / %ds = %d%s) ETA: %ds', path,
-                progressPercentage, round(b.value), b.unit, s,
-                round(bS.value), bS.unit, eta)
+        if end:
+            self.copiedFiles += 1
+            self.copiedSize += bytesTotal
+            self.copiedTime += elapsed
+
+            LOGGER.info('%s: %d%% (%d%s / %ds = %d%s) #%d',
+                    path, progressPercentage, round(b.value), b.unit, s,
+                    round(bS.value), bS.unit, self.copiedFiles)
+        else:
+            eta = self.eta(elapsed, bytesUploaded, bytesTotal)
+
+            LOGGER.info('%s: %d%% (%d%s / %ds = %d%s) ETA: %ds', path,
+                    progressPercentage, round(b.value), b.unit, s,
+                    round(bS.value), bS.unit, eta)
 
     def bS(self, bytesUploaded, elapsed):
         if round(elapsed) == 0:
@@ -323,7 +355,8 @@ class GDRsync(object):
         return round(finish - elapsed)
 
     def update(self, localFile, remoteFile):
-        LOGGER.info('%s: Updating file...', remoteFile.path)
+        LOGGER.info('%s: Updating file... (Checked %d/%d files)',
+                remoteFile.path, self.checkedFiles, self.totalFiles)
         if self.args.dryRun:
             return remoteFile
 
@@ -336,7 +369,8 @@ class GDRsync(object):
         return self.copy(localFile, remoteFile, createRequest)
 
     def touch(self, localFile, remoteFile):
-        LOGGER.debug('%s: Updating modified date...', remoteFile.path)
+        LOGGER.info('%s: Updating modified date... (Checked %d/%d files)',
+                remoteFile.path, self.checkedFiles, self.totalFiles)
         if self.args.dryRun:
             return remoteFile
 
@@ -360,5 +394,18 @@ class GDRsync(object):
             return folder.empty(remoteFile)
 
         return self.remoteFolderFactory.create(remoteFile)
+
+    def logResult(self):
+        copiedSize = binaryunit.BinaryUnit(self.copiedSize, 'B')
+        copiedTime = round(self.copiedTime)
+        bS = binaryunit.BinaryUnit(self.bS(self.copiedSize, self.copiedTime),
+                'B/s')
+
+        checkedSize = binaryunit.BinaryUnit(self.checkedSize, 'B')
+
+        LOGGER.info('Copied %d files (%d%s / %ds = %d%s) Checked %d files (%d%s)',
+                self.copiedFiles, round(copiedSize.value), copiedSize.unit,
+                copiedTime, round(bS.value), bS.unit, self.checkedFiles,
+                round(checkedSize.value), checkedSize.unit)
 
 GDRsync(args).sync()
