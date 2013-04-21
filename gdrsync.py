@@ -11,6 +11,9 @@ parser.add_argument('remotePath', help = 'remote path', metavar = 'REMOTE')
 
 parser.add_argument('-c', action = 'store_true',
         help = 'skip based on checksum, not mod-time & size', dest = 'checksum')
+parser.add_argument('-d', action = 'store_true',
+        help = 'delete duplicate and extraneous files from dest dirs',
+        dest = 'delete')
 parser.add_argument('-n', action = 'store_true',
         help = 'perform a trial run with no changes made', dest = 'dryRun')
 parser.add_argument('-r', action = 'store_true',
@@ -97,6 +100,9 @@ class GDRsync(object):
                     self.createRemoteFolder(remoteFile))
 
     def trash(self, localFolder, remoteFolder):
+        if not self.args.delete:
+            return remoteFolder
+
         remoteFolder = self.trashDuplicate(localFolder, remoteFolder)
         remoteFolder = self.trashExtraneous(localFolder, remoteFolder)
         remoteFolder = self.trashDifferentType(localFolder, remoteFolder)
