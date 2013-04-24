@@ -18,6 +18,8 @@ parser.add_argument('-n', action = 'store_true',
         help = 'perform a trial run with no changes made', dest = 'dryRun')
 parser.add_argument('-r', action = 'store_true',
         help = 'recurse into directories', dest = 'recursive')
+parser.add_argument('-u', action = 'store_true',
+        help = 'skip files that are newer on the receiver', dest = 'update')
 parser.add_argument('-v', action='count', default = 0,
         help = 'increase verbosity', dest = 'verbosity')
 
@@ -218,7 +220,10 @@ class GDRsync(object):
         if remoteFile is None:
             return self.insert
 
-        if self.args.checksum:
+        if self.args.update and (remoteFile.modified > localFile.modified):
+            LOGGER.debug("%s: Newer destination file: %f < %f.",
+                    remoteFile.path, localFile.modified, remoteFile.modified)
+        elif self.args.checksum:
             fileOperation = self.checkChecksum(localFile, remoteFile)
             if fileOperation is not None:
                 return fileOperation
