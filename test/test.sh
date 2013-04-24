@@ -1,6 +1,16 @@
 #!/bin/bash
 
-PATH="$(dirname "${0}")"
+DIR="$(dirname "${0}")"
+GDRSYNC="${DIR}/../gdrsync.py"
 
-"${PATH}/../gdrsync.py" "${PATH}/local" /remote
+function logAndRun() {
+    echo "${@}" 1>&2
 
+    eval "${@}"
+}
+
+logAndRun "${GDRSYNC}" -vv -n "${DIR}/local" /remote
+
+logAndRun "${GDRSYNC}" -vv -u "${DIR}/local" /remote
+
+logAndRun "${GDRSYNC}" -vv -dr "${DIR}/local" /remote
