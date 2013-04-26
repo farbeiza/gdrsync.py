@@ -37,7 +37,7 @@ def parseTime(string):
     dateTime = datetime.datetime.strptime(string, DATE_TIME_FORMAT)
 
     return (calendar.timegm(dateTime.timetuple())
-            + (dateTime.microsecond / utils.US))
+            + (float(dateTime.microsecond) / utils.US))
 
 def credentials():
     refreshToken = config.PARSER.get('gdrsync', 'refreshToken')

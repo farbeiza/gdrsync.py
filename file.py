@@ -46,8 +46,8 @@ class File(object):
 
     @property
     def modified(self):
-        # Milliseconds in modified time are not supported in all systems
-        return math.floor(self.modifiedImpl)
+        # Modified time resolution in Google Drive is milliseconds
+        return round(self.modifiedImpl, 3)
 
     @property
     def modifiedImpl(self):
