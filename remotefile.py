@@ -1,5 +1,6 @@
 #!/usr/bin/python
 
+import date
 import driveutils
 import file
 import requestexecutor
@@ -37,11 +38,11 @@ class RemoteFile(file.File):
         return int(self._delegate['fileSize'])
 
     @property
-    def modifiedImpl(self):
+    def modified(self):
         modifiedDate = self._delegate.get('modifiedDate',
                 self._delegate['createdDate'])
 
-        return driveutils.parseTime(modifiedDate)
+        return date.fromString(modifiedDate)
 
     @property
     def contentMd5(self):

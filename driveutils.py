@@ -4,17 +4,12 @@ import config
 import utils
 
 import apiclient.discovery
-import calendar
-import datetime
 import httplib2
 import logging
 import oauth2client.client
 import re
-import time
 
 TIMEOUT = 60 # seconds
-
-DATE_TIME_FORMAT = '%Y-%m-%dT%H:%M:%S.%fZ'
 
 FIELDS = 'id, title, mimeType, createdDate, modifiedDate, md5Checksum, fileSize'
 
@@ -28,17 +23,6 @@ SEARCH_PARAMETER_RE = re.compile('(' + '[' + '\'\\\\' + ']' + ')')
 SEARCH_PARAMETER_REPLACEMENT = '\\\\\\1'
 
 LOGGER = logging.getLogger(__name__)
-
-def formatTime(seconds):
-    dateTime = datetime.datetime.utcfromtimestamp(seconds)
-
-    return dateTime.strftime(DATE_TIME_FORMAT)
-
-def parseTime(string):
-    dateTime = datetime.datetime.strptime(string, DATE_TIME_FORMAT)
-
-    return (calendar.timegm(dateTime.timetuple())
-            + (float(dateTime.microsecond) / utils.US))
 
 def credentials():
     refreshToken = config.PARSER.get('gdrsync', 'refreshToken')

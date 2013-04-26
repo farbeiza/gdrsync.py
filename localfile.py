@@ -3,6 +3,7 @@
 import file
 import utils
 
+import date
 import hashlib
 import os
 
@@ -33,8 +34,8 @@ class LocalFile(file.File):
         return os.path.getsize(self.path)
 
     @property
-    def modifiedImpl(self):
-        return os.path.getmtime(self.path)
+    def modified(self):
+        return date.fromSeconds(os.path.getmtime(self.path))
 
     @property
     def contentMd5(self):

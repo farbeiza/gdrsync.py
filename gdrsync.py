@@ -191,7 +191,7 @@ class GDRsync(object):
             return self.insertFile
 
         if self.args.update and (remoteFile.modified > localFile.modified):
-            LOGGER.debug("%s: Newer destination file: %f < %f.",
+            LOGGER.debug("%s: Newer destination file: %s < %s.",
                     remoteFile.path, localFile.modified, remoteFile.modified)
         elif self.args.checksum:
             fileOperation = self.checkChecksum(localFile, remoteFile)
@@ -245,7 +245,7 @@ class GDRsync(object):
         if fileOperation is not None:
             return fileOperation
 
-        LOGGER.debug("%s: Different modified time: %f != %f.", remoteFile.path,
+        LOGGER.debug("%s: Different modified time: %s != %s.", remoteFile.path,
                 localFile.modified, remoteFile.modified)
 
         return self.touch
@@ -257,7 +257,7 @@ class GDRsync(object):
             return remoteFile
 
         body = remoteFile.delegate.copy()
-        body['modifiedDate'] = driveutils.formatTime(localFile.modified)
+        body['modifiedDate'] = str(localFile.modified)
         def request():
             return (driveutils.DRIVE.files().insert(body = body,
                     fields = driveutils.FIELDS).execute())
@@ -280,7 +280,7 @@ class GDRsync(object):
 
     def copyFile(self, localFile, remoteFile, createRequest):
         body = remoteFile.delegate.copy()
-        body['modifiedDate'] = driveutils.formatTime(localFile.modified)
+        body['modifiedDate'] = str(localFile.modified)
 
         (mimeType, encoding) = mimetypes.guess_type(localFile.delegate)
         if mimeType is None:
@@ -371,7 +371,7 @@ class GDRsync(object):
         if self.args.dryRun:
             return remoteFile
 
-        body = {'modifiedDate': driveutils.formatTime(localFile.modified)}
+        body = {'modifiedDate': str(localFile.modified)}
 
         def request():
             return (driveutils.DRIVE.files()

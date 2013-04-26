@@ -45,15 +45,6 @@ class File(object):
         raise NotImplementedError()
 
     @property
-    def modified(self):
-        # Modified time resolution in Google Drive is milliseconds
-        return round(self.modifiedImpl, 3)
-
-    @property
-    def modifiedImpl(self):
-        raise NotImplementedError()
-
-    @property
     def md5(self):
         if self.folder:
             md5 = hashlib.md5()
