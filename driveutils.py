@@ -16,7 +16,7 @@ TIMEOUT = 60 # seconds
 
 DATE_TIME_FORMAT = '%Y-%m-%dT%H:%M:%S.%fZ'
 
-FIELDS = 'id, title, mimeType, modifiedDate, md5Checksum, fileSize'
+FIELDS = 'id, title, mimeType, createdDate, modifiedDate, md5Checksum, fileSize'
 
 CLIENT_ID = '387402765904.apps.googleusercontent.com'
 CLIENT_SECRET = 'WTj0xKbLAFjDqUeT2HGDZHCi'
@@ -31,6 +31,7 @@ LOGGER = logging.getLogger(__name__)
 
 def formatTime(seconds):
     dateTime = datetime.datetime.utcfromtimestamp(seconds)
+
     return dateTime.strftime(DATE_TIME_FORMAT)
 
 def parseTime(string):

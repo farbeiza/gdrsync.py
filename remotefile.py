@@ -38,7 +38,10 @@ class RemoteFile(file.File):
 
     @property
     def modifiedImpl(self):
-        return driveutils.parseTime(self._delegate['modifiedDate'])
+        modifiedDate = self._delegate.get('modifiedDate',
+                self._delegate['createdDate'])
+
+        return driveutils.parseTime(modifiedDate)
 
     @property
     def contentMd5(self):
