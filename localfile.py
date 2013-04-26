@@ -30,7 +30,7 @@ class LocalFile(file.File):
         return self.path
 
     @property
-    def size(self):
+    def contentSize(self):
         return os.path.getsize(self.path)
 
     @property
@@ -40,7 +40,7 @@ class LocalFile(file.File):
         return math.floor(os.path.getmtime(self.path))
 
     @property
-    def md5(self):
+    def contentMd5(self):
         with open(self.path, mode = 'rb') as file:
             md5 = hashlib.md5()
             while True:

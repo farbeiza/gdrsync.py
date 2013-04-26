@@ -33,7 +33,7 @@ class RemoteFile(file.File):
         return self._delegate
 
     @property
-    def size(self):
+    def contentSize(self):
         return int(self._delegate['fileSize'])
 
     @property
@@ -41,7 +41,7 @@ class RemoteFile(file.File):
         return driveutils.parseTime(self._delegate['modifiedDate'])
 
     @property
-    def md5(self):
+    def contentMd5(self):
         return self._delegate['md5Checksum']
 
     @property

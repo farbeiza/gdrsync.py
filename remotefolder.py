@@ -4,6 +4,7 @@ import driveutils
 import folder
 import remotefile
 import requestexecutor
+import utils
 
 import os
 
@@ -17,9 +18,14 @@ class RemoteFolder(folder.Folder):
     def withoutDuplicate(self):
         return RemoteFolder(self._file, self._children)
 
-    def createFile(self, name, mimeType = None):
+    def createFile(self, name, folder = None, mimeType = None):
+        folder = utils.firstNonNone(folder, False)
+
         file = {'title': name}
-        if mimeType is not None:
+        if mimeType is None:
+            if folder:
+                file['mimeType'] = remotefile.MIME_FOLDER
+        else:
             file['mimeType'] = mimeType
 
         file['parents'] = [{'id': self.file.delegate['id']}]

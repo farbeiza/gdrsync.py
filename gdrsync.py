@@ -89,8 +89,7 @@ class GDRsync(object):
 
         self.totalFiles += len(localFolder.children)
 
-        remoteFolder = self.insertFolders(localFolder, remoteFolder)
-        remoteFolder = self.copyFiles(localFolder, remoteFolder)
+        remoteFolder = self.copy(localFolder, remoteFolder)
 
         if not self.args.recursive:
             return
@@ -162,43 +161,10 @@ class GDRsync(object):
 
         return output
 
-    def insertFolders(self, localFolder, remoteFolder):
+    def copy(self, localFolder, remoteFolder):
         output = (remoteFolder.withoutChildren()
                 .addChildren(remoteFolder.children.values()))
-        for localFile in localFolder.folders():
-            self.checkedFiles += 1
-
-            remoteFile = remoteFolder.children.get(localFile.name)
-            if remoteFile is not None:
-                LOGGER.debug('%s: Existent folder. (Checked %d/%d files)',
-                        remoteFile.path, self.checkedFiles, self.totalFiles)
-                continue
-
-            remoteFile = remoteFolder.createFolder(localFile.name)
-            remoteFile = self.insertFolder(localFile, remoteFile)
-
-            output.addChild(remoteFile)
-
-        return output
-
-    def insertFolder(self, localFile, remoteFile):
-        LOGGER.info('%s: Inserting folder... (Checked %d/%d files)',
-                remoteFile.path, self.checkedFiles, self.totalFiles)
-        if self.args.dryRun:
-            return remoteFile
-
-        def request():
-            return (driveutils.DRIVE.files().insert(body = remoteFile.delegate,
-                    fields = driveutils.FIELDS).execute())
-
-        file = requestexecutor.execute(request)
-
-        return remoteFile.withDelegate(file)
-
-    def copyFiles(self, localFolder, remoteFolder):
-        output = (remoteFolder.withoutChildren()
-                .addChildren(remoteFolder.children.values()))
-        for localFile in localFolder.files():
+        for localFile in localFolder.children.values():
             self.checkedFiles += 1
             self.checkedSize += localFile.size
 
@@ -209,7 +175,8 @@ class GDRsync(object):
                 continue
 
             if remoteFile is None:
-                remoteFile = remoteFolder.createFile(localFile.name)
+                remoteFile = remoteFolder.createFile(localFile.name,
+                        localFile.folder)
             remoteFile = fileOperation(localFile, remoteFile)
 
             output.addChild(remoteFile)
@@ -218,7 +185,10 @@ class GDRsync(object):
 
     def fileOperation(self, localFile, remoteFile):
         if remoteFile is None:
-            return self.insert
+            if localFile.folder:
+                return self.insertFolder
+
+            return self.insertFile
 
         if self.args.update and (remoteFile.modified > localFile.modified):
             LOGGER.debug("%s: Newer destination file: %f < %f.",
@@ -256,7 +226,7 @@ class GDRsync(object):
         LOGGER.debug('%s: Different checksum: %s != %s.', remoteFile.path,
                 localFile.md5, remoteFile.md5)
 
-        return self.update
+        return self.updateFile
 
     def checkSize(self, localFile, remoteFile):
         if remoteFile.size == localFile.size:
@@ -265,7 +235,7 @@ class GDRsync(object):
         LOGGER.debug('%s: Different size: %d != %d.', remoteFile.path,
                 localFile.size, remoteFile.size)
 
-        return self.update
+        return self.updateFile
 
     def checkModified(self, localFile, remoteFile):
         if remoteFile.modified == localFile.modified:
@@ -280,7 +250,23 @@ class GDRsync(object):
 
         return self.touch
 
-    def insert(self, localFile, remoteFile):
+    def insertFolder(self, localFile, remoteFile):
+        LOGGER.info('%s: Inserting folder... (Checked %d/%d files)',
+                remoteFile.path, self.checkedFiles, self.totalFiles)
+        if self.args.dryRun:
+            return remoteFile
+
+        body = remoteFile.delegate.copy()
+        body['modifiedDate'] = driveutils.formatTime(localFile.modified)
+        def request():
+            return (driveutils.DRIVE.files().insert(body = body,
+                    fields = driveutils.FIELDS).execute())
+
+        file = requestexecutor.execute(request)
+
+        return remoteFile.withDelegate(file)
+
+    def insertFile(self, localFile, remoteFile):
         LOGGER.info('%s: Inserting file... (Checked %d/%d files)',
                 remoteFile.path, self.checkedFiles, self.totalFiles)
         if self.args.dryRun:
@@ -290,9 +276,9 @@ class GDRsync(object):
             return (driveutils.DRIVE.files().insert(body = body,
                     media_body = media, fields = driveutils.FIELDS))
 
-        return self.copy(localFile, remoteFile, createRequest)
+        return self.copyFile(localFile, remoteFile, createRequest)
 
-    def copy(self, localFile, remoteFile, createRequest):
+    def copyFile(self, localFile, remoteFile, createRequest):
         body = remoteFile.delegate.copy()
         body['modifiedDate'] = driveutils.formatTime(localFile.modified)
 
@@ -365,7 +351,7 @@ class GDRsync(object):
 
         return round(finish - elapsed)
 
-    def update(self, localFile, remoteFile):
+    def updateFile(self, localFile, remoteFile):
         LOGGER.info('%s: Updating file... (Checked %d/%d files)',
                 remoteFile.path, self.checkedFiles, self.totalFiles)
         if self.args.dryRun:
@@ -377,7 +363,7 @@ class GDRsync(object):
                             media_body = media, setModifiedDate = True,
                             fields = driveutils.FIELDS))
 
-        return self.copy(localFile, remoteFile, createRequest)
+        return self.copyFile(localFile, remoteFile, createRequest)
 
     def touch(self, localFile, remoteFile):
         LOGGER.info('%s: Updating modified date... (Checked %d/%d files)',

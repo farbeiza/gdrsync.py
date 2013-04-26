@@ -12,6 +12,7 @@ class Factory(object):
 
         localFolder = folder.Folder(file)
         for path in os.listdir(file.delegate):
-            localFolder.addChild(localfile.fromParent(file, path))
+            localFile = localfile.fromParent(file, path)
+            localFolder.addChild(localFile)
 
         return localFolder

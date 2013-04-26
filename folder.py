@@ -52,8 +52,5 @@ class Folder(object):
     def withoutDuplicate(self):
         return Folder(self._file, self._children)
 
-    def createFile(self, name):
-        return file.fromParent(self.file, name)
-
-    def createFolder(self, name):
-        return file.fromParent(self.file, name, True)
+    def createFile(self, name, folder = None):
+        return file.fromParent(self.file, name, folder)
