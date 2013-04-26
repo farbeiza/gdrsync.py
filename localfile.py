@@ -4,7 +4,6 @@ import file
 import utils
 
 import hashlib
-import math
 import os
 
 MD5_BUFFER_SIZE = 16 * utils.KIB
@@ -34,10 +33,8 @@ class LocalFile(file.File):
         return os.path.getsize(self.path)
 
     @property
-    def modified(self):
-        # Milliseconds in modified time are not supported in all
-        # systems/languages
-        return math.floor(os.path.getmtime(self.path))
+    def modifiedImpl(self):
+        return os.path.getmtime(self.path)
 
     @property
     def contentMd5(self):

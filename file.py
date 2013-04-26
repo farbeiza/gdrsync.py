@@ -2,6 +2,7 @@
 
 import utils
 
+import math
 import hashlib
 import os
 
@@ -41,6 +42,15 @@ class File(object):
 
     @property
     def contentSize(self):
+        raise NotImplementedError()
+
+    @property
+    def modified(self):
+        # Milliseconds in modified time are not supported in all systems
+        return math.floor(self.modifiedImpl)
+
+    @property
+    def modifiedImpl(self):
         raise NotImplementedError()
 
     @property

@@ -37,7 +37,7 @@ class RemoteFile(file.File):
         return int(self._delegate['fileSize'])
 
     @property
-    def modified(self):
+    def modifiedImpl(self):
         return driveutils.parseTime(self._delegate['modifiedDate'])
 
     @property
