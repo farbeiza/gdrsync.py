@@ -10,7 +10,7 @@ function logAndRun() {
 }
 
 find "${DIR}/local" | xargs touch -d '1978-08-03'
-logAndRun "${GDRSYNC}" -vv -dr "${DIR}/remote" /remote
+logAndRun "${GDRSYNC}" -vv -dr "${DIR}/remote" /test
 
 cat <<-EOF
 Rename using the web interface:
