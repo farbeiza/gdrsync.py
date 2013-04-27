@@ -4,7 +4,7 @@ import utils
 
 BASE = float(utils.KIB)
 MAX_NUMBER = 10000.0
-PREFIXES = ["", "Ki", "Mi", "Gi", "Ti", "Pi", "Ei", "Zi", "Yi"]
+PREFIXES = ['', 'Ki', 'Mi', 'Gi', 'Ti', 'Pi', 'Ei', 'Zi', 'Yi']
 
 class BinaryUnit(object):
     def __init__(self, value, unit):

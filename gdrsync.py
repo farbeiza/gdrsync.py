@@ -6,7 +6,8 @@ import argparse
 parser = argparse.ArgumentParser(description = 'Copy files from a local system'
         ' to a Google drive repository.')
 
-parser.add_argument('localPath', help = 'local path', metavar = 'LOCAL')
+parser.add_argument('localPaths', nargs='+', help = 'local paths',
+        metavar = 'LOCAL')
 parser.add_argument('remotePath', help = 'remote path', metavar = 'REMOTE')
 
 parser.add_argument('-c', action = 'store_true',
@@ -40,10 +41,12 @@ import binaryunit
 import config
 import driveutils
 import folder
+import localfile
 import localfolder
 import remotefolder
 import requestexecutor
 import utils
+import virtualfile
 
 import apiclient.http
 import mimetypes
@@ -77,12 +80,21 @@ class GDRsync(object):
     def sync(self):
         LOGGER.info('Starting...')
 
-        self._sync(self.localFolderFactory.create(self.args.localPath),
+        virtualLocalFolder = self.virtualLocalFolder(self.args.localPaths)
+
+        self._sync(virtualLocalFolder,
                 self.remoteFolderFactory.create(self.args.remotePath))
 
         self.logResult();
 
         LOGGER.info('End.')
+
+    def virtualLocalFolder(self, localPaths):
+        virtualFolder = folder.Folder(virtualfile.VirtualFile(True))
+        for localPath in localPaths:
+            virtualFolder.addChild(localfile.LocalFile(localPath))
+
+        return virtualFolder
 
     def _sync(self, localFolder, remoteFolder):
         remoteFolder = self.trash(localFolder, remoteFolder)
@@ -191,7 +203,7 @@ class GDRsync(object):
             return self.insertFile
 
         if self.args.update and (remoteFile.modified > localFile.modified):
-            LOGGER.debug("%s: Newer destination file: %s < %s.",
+            LOGGER.debug('%s: Newer destination file: %s < %s.',
                     remoteFile.path, localFile.modified, remoteFile.modified)
         elif self.args.checksum:
             fileOperation = self.checkChecksum(localFile, remoteFile)
@@ -245,7 +257,7 @@ class GDRsync(object):
         if fileOperation is not None:
             return fileOperation
 
-        LOGGER.debug("%s: Different modified time: %s != %s.", remoteFile.path,
+        LOGGER.debug('%s: Different modified time: %s != %s.', remoteFile.path,
                 localFile.modified, remoteFile.modified)
 
         return self.touch
