@@ -2,11 +2,15 @@
 # -*- coding: utf-8 -*-
 
 import argparse
+import os
 
 parser = argparse.ArgumentParser(description = 'Copy files from a local system'
         ' to a Google drive repository.')
 
-parser.add_argument('localPaths', nargs='+', help = 'local paths',
+parser.add_argument('localPaths', nargs='+',
+        help = ('local paths. A trailing %s means "copy the contents of this'
+                ' directory", as opposed to "copy the directory itself"'
+                % os.path.sep),
         metavar = 'LOCAL')
 parser.add_argument('remotePath', help = 'remote path', metavar = 'REMOTE')
 
@@ -46,7 +50,7 @@ import localfolder
 import remotefolder
 import requestexecutor
 import utils
-import virtualfile
+import virtuallocalfolder
 
 import apiclient.http
 import mimetypes
@@ -65,9 +69,6 @@ class GDRsync(object):
     def __init__(self, args):
         self.args = args
 
-        self.localFolderFactory = localfolder.Factory()
-        self.remoteFolderFactory = remotefolder.Factory()
-
         self.copiedFiles = 0
         self.copiedSize = 0
         self.copiedTime = 0
@@ -80,21 +81,13 @@ class GDRsync(object):
     def sync(self):
         LOGGER.info('Starting...')
 
-        virtualLocalFolder = self.virtualLocalFolder(self.args.localPaths)
-
-        self._sync(virtualLocalFolder,
-                self.remoteFolderFactory.create(self.args.remotePath))
+        virtualLocalFolder = virtuallocalfolder.create(self.args.localPaths)
+        remoteFolder = remotefolder.create(self.args.remotePath)
+        self._sync(virtualLocalFolder, remoteFolder)
 
         self.logResult();
 
         LOGGER.info('End.')
-
-    def virtualLocalFolder(self, localPaths):
-        virtualFolder = folder.Folder(virtualfile.VirtualFile(True))
-        for localPath in localPaths:
-            virtualFolder.addChild(localfile.LocalFile(localPath))
-
-        return virtualFolder
 
     def _sync(self, localFolder, remoteFolder):
         remoteFolder = self.trash(localFolder, remoteFolder)
@@ -396,13 +389,13 @@ class GDRsync(object):
         return remoteFile.withDelegate(file)
 
     def createLocalFolder(self, localFile):
-        return self.localFolderFactory.create(localFile)
+        return localfolder.create(localFile)
 
     def createRemoteFolder(self, remoteFile):
         if self.args.dryRun and (not remoteFile.exists):
             return folder.empty(remoteFile)
 
-        return self.remoteFolderFactory.create(remoteFile)
+        return remotefolder.create(remoteFile)
 
     def logResult(self):
         copiedSize = binaryunit.BinaryUnit(self.copiedSize, 'B')
