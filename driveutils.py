@@ -25,10 +25,7 @@ SEARCH_PARAMETER_REPLACEMENT = '\\\\\\1'
 LOGGER = logging.getLogger(__name__)
 
 def credentials():
-    refreshToken = None
-    if config.PARSER.has_option('gdrsync', 'refreshToken'):
-        refreshToken = config.PARSER.get('gdrsync', 'refreshToken')
-
+    refreshToken = config.get('refreshToken')
     if refreshToken:
         LOGGER.debug('Using stored refresh token...')
 
@@ -47,7 +44,12 @@ def credentials():
 
     LOGGER.debug('Requesting new refresh token...')
     credentials = flow.step2_exchange(authorizationCode)
-    print 'Refresh token: ' + credentials.refresh_token
+
+    refreshToken = credentials.refresh_token
+    print 'Refresh token: ' + refreshToken
+
+    config.set('refreshToken', refreshToken)
+    config.save()
 
     return credentials
 
