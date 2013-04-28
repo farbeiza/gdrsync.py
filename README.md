@@ -4,6 +4,10 @@ Simple rsync utility for Google Drive (for uploading only).
 
 ## Prerequisites
 
+### Python 2
+
+Google API libraries do not support Python 3 yet.
+
 ### Google APIs Client Library for Python
 
 You can install it using easy_install:
