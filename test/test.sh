@@ -9,8 +9,8 @@ function logAndRun() {
     eval "${@}"
 }
 
-logAndRun "${GDRSYNC}" -vv -n "${DIR}/local" /test
+logAndRun "${GDRSYNC}" -vv -n "${DIR}/local/" /test
 
-logAndRun "${GDRSYNC}" -vv -u "${DIR}/local" /test
+logAndRun "${GDRSYNC}" -vv -u "${DIR}/local/" /test
 
-logAndRun "${GDRSYNC}" -vv -dr "${DIR}/local" /test
+logAndRun "${GDRSYNC}" -vv -dr "${DIR}/local/" /test
