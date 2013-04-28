@@ -12,43 +12,6 @@ MIME_FOLDER = 'application/vnd.google-apps.folder'
 
 FILE_ID_QUERY = '(title = \'%(title)s\') and (not trashed)'
 
-def create(path):
-    fileId = retrieveFileId(path)
-    if fileId is None:
-        raise RuntimeError('%s not found' % path)
-
-    def request():
-        return (driveutils.DRIVE.files().get(fileId = fileId,
-                fields = driveutils.FIELDS).execute())
-
-    file = requestexecutor.execute(request)
-
-    return RemoteFile(path, file)
-
-def retrieveFileId(path):
-    (parent, name) = os.path.split(path)
-    if parent == path:
-        return 'root'
-    if name == '':
-        return retrieveFileId(parent)
-
-    parentId = retrieveFileId(parent)
-    if parentId is None:
-        return None
-
-    query = FILE_ID_QUERY % {'title' : driveutils.escapeQueryParameter(name)}
-
-    def request():
-
-        return (driveutils.DRIVE.children().list(folderId = parentId,
-                q = query, maxResults = 1, fields = 'items(id)') .execute())
-
-    children = requestexecutor.execute(request)
-    for child in children.get('items'):
-        return child['id']
-
-    return None
-
 def fromParent(parent, delegate):
     return fromParentPath(parent.path, delegate)
 
@@ -93,3 +56,43 @@ class RemoteFile(file.File):
 
     def withDelegate(self, delegate):
         return RemoteFile(self.path, delegate)
+
+class Factory(object):
+    def __init__(self, drive):
+        self.drive = drive
+
+    def create(self, path):
+        fileId = self.retrieveFileId(path)
+        if fileId is None:
+            raise RuntimeError('%s not found' % path)
+
+        def request():
+            return (self.drive.files().get(fileId = fileId,
+                    fields = driveutils.FIELDS).execute())
+
+        file = requestexecutor.execute(request)
+
+        return RemoteFile(path, file)
+
+    def retrieveFileId(self, path):
+        (parent, name) = os.path.split(path)
+        if parent == path:
+            return 'root'
+        if name == '':
+            return self.retrieveFileId(parent)
+
+        parentId = self.retrieveFileId(parent)
+        if parentId is None:
+            return None
+
+        query = (FILE_ID_QUERY %
+                {'title' : driveutils.escapeQueryParameter(name)})
+        def request():
+            return (self.drive.children().list(folderId = parentId, q = query,
+                    maxResults = 1, fields = 'items(id)') .execute())
+
+        children = requestexecutor.execute(request)
+        for child in children.get('items'):
+            return child['id']
+
+        return None

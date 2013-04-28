@@ -24,7 +24,16 @@ SEARCH_PARAMETER_REPLACEMENT = '\\\\\\1'
 
 LOGGER = logging.getLogger(__name__)
 
-def credentials():
+def escapeQueryParameter(parameter):
+    return SEARCH_PARAMETER_RE.sub(SEARCH_PARAMETER_REPLACEMENT, parameter)
+
+def drive(saveCredentials = None):
+    http = (credentials(saveCredentials)
+            .authorize(httplib2.Http(timeout = TIMEOUT)))
+
+    return apiclient.discovery.build('drive', 'v2', http = http)
+
+def credentials(save = None):
     refreshToken = config.get('refreshToken')
     if refreshToken:
         LOGGER.debug('Using stored refresh token...')
@@ -48,14 +57,8 @@ def credentials():
     refreshToken = credentials.refresh_token
     print 'Refresh token: ' + refreshToken
 
-    config.set('refreshToken', refreshToken)
-    config.save()
+    if utils.firstNonNone(save, False):
+        config.set('refreshToken', refreshToken)
+        config.save()
 
     return credentials
-
-http = credentials().authorize(httplib2.Http(timeout = TIMEOUT))
-
-DRIVE = apiclient.discovery.build('drive', 'v2', http = http)
-
-def escapeQueryParameter(parameter):
-    return SEARCH_PARAMETER_RE.sub(SEARCH_PARAMETER_REPLACEMENT, parameter)

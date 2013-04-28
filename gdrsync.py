@@ -23,6 +23,8 @@ parser.add_argument('-n', action = 'store_true',
         help = 'perform a trial run with no changes made', dest = 'dryRun')
 parser.add_argument('-r', action = 'store_true',
         help = 'recurse into directories', dest = 'recursive')
+parser.add_argument('-s', action = 'store_true',
+        help = 'save credentials for future re-use', dest = 'saveCredentials')
 parser.add_argument('-u', action = 'store_true',
         help = 'skip files that are newer on the receiver', dest = 'update')
 parser.add_argument('-v', action='count', default = 0,
@@ -66,6 +68,9 @@ class GDRsync(object):
     def __init__(self, args):
         self.args = args
 
+        self.drive = driveutils.drive(self.args.saveCredentials)
+        self.remoteFolderFactory = remotefolder.Factory(self.drive)
+
         self.copiedFiles = 0
         self.copiedSize = 0
         self.copiedTime = 0
@@ -79,7 +84,7 @@ class GDRsync(object):
         LOGGER.info('Starting...')
 
         virtualLocalFolder = virtuallocalfolder.create(self.args.localPaths)
-        remoteFolder = remotefolder.create(self.args.remotePath)
+        remoteFolder = self.remoteFolderFactory.create(self.args.remotePath)
         self._sync(virtualLocalFolder, remoteFolder)
 
         self.logResult();
@@ -126,7 +131,7 @@ class GDRsync(object):
             return remoteFile
 
         def request():
-            return (driveutils.DRIVE.files()
+            return (self.drive.files()
                     .trash(fileId = remoteFile.delegate['id'],
                             fields = driveutils.FIELDS)
                     .execute())
@@ -261,7 +266,7 @@ class GDRsync(object):
         body = remoteFile.delegate.copy()
         body['modifiedDate'] = str(localFile.modified)
         def request():
-            return (driveutils.DRIVE.files().insert(body = body,
+            return (self.drive.files().insert(body = body,
                     fields = driveutils.FIELDS).execute())
 
         file = requestexecutor.execute(request)
@@ -275,8 +280,8 @@ class GDRsync(object):
             return remoteFile
 
         def createRequest(body, media):
-            return (driveutils.DRIVE.files().insert(body = body,
-                    media_body = media, fields = driveutils.FIELDS))
+            return (self.drive.files().insert(body = body, media_body = media,
+                    fields = driveutils.FIELDS))
 
         return self.copyFile(localFile, remoteFile, createRequest)
 
@@ -360,7 +365,7 @@ class GDRsync(object):
             return remoteFile
 
         def createRequest(body, media):
-            return (driveutils.DRIVE.files()
+            return (self.drive.files()
                     .update(fileId = remoteFile.delegate['id'], body = body,
                             media_body = media, setModifiedDate = True,
                             fields = driveutils.FIELDS))
@@ -376,7 +381,7 @@ class GDRsync(object):
         body = {'modifiedDate': str(localFile.modified)}
 
         def request():
-            return (driveutils.DRIVE.files()
+            return (self.drive.files()
                     .patch(fileId = remoteFile.delegate['id'], body = body,
                             setModifiedDate = True, fields = driveutils.FIELDS)
                     .execute())
@@ -392,7 +397,7 @@ class GDRsync(object):
         if self.args.dryRun and (not remoteFile.exists):
             return folder.empty(remoteFile)
 
-        return remotefolder.create(remoteFile)
+        return self.remoteFolderFactory.create(remoteFile)
 
     def logResult(self):
         copiedSize = binaryunit.BinaryUnit(self.copiedSize, 'B')
