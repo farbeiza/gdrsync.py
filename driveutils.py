@@ -25,7 +25,10 @@ SEARCH_PARAMETER_REPLACEMENT = '\\\\\\1'
 LOGGER = logging.getLogger(__name__)
 
 def credentials():
-    refreshToken = config.PARSER.get('gdrsync', 'refreshToken')
+    refreshToken = None
+    if config.PARSER.has_option('gdrsync', 'refreshToken'):
+        refreshToken = config.PARSER.get('gdrsync', 'refreshToken')
+
     if refreshToken:
         LOGGER.debug('Using stored refresh token...')
 

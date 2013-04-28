@@ -42,10 +42,8 @@ if args.verbosity < len(LOG_LEVELS):
     logging.getLogger('oauth2client.util').setLevel(logging.ERROR)
 
 import binaryunit
-import config
 import driveutils
 import folder
-import localfile
 import localfolder
 import remotefolder
 import requestexecutor
@@ -54,7 +52,6 @@ import virtuallocalfolder
 
 import apiclient.http
 import mimetypes
-import sys
 import time
 
 CHUNKSIZE = 1 * utils.MIB
