@@ -85,7 +85,7 @@ class GDRsync(object):
     def sync(self):
         LOGGER.info('Starting...')
 
-        virtualLocalFolder = virtuallocalfolder.create(self.args.localPaths)
+        virtualLocalFolder = virtuallocalfolder.Factory().create(self.args.localPaths)
         remoteFolder = self.remoteFolderFactory.create(self.args.remotePath)
         self._sync(virtualLocalFolder, remoteFolder)
 

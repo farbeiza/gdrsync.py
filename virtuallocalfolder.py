@@ -1,24 +1,23 @@
 #!/usr/bin/python
 
-import folder
 import localfile
 import localfolder
-import virtualfile
+import virtualfolder
 
 import os
 
-def create(localPaths):
-    localFolderFactory = localfolder.Factory()
-    localFileFactory = localfile.Factory()
+class Factory(virtualfolder.Factory):
+    def __init__(self):
+        self._folderFactory = localfolder.Factory()
+        self._fileFactory = localfile.Factory()
 
-    virtualFolder = folder.Folder(virtualfile.VirtualFile(True))
-    for localPath in localPaths:
-        (head, tail) = os.path.split(localPath)
-        if tail == '':
-            localFolder = localFolderFactory.create(head)
-            virtualFolder.addChildren(localFolder.children.values())
-        else:
-            localFile = localFileFactory.create(localPath)
-            virtualFolder.addChild(localFile)
+    def split(self, path):
+        return os.path.split(path)
 
-    return virtualFolder
+    @property
+    def folderFactory(self):
+        return self._folderFactory
+
+    @property
+    def fileFactory(self):
+        return self._fileFactory
