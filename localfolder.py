@@ -5,13 +5,16 @@ import localfile
 
 import os
 
-def create(file):
-    if not isinstance(file, localfile.LocalFile):
-        return create(localfile.create(file))
+class Factory(object):
+    def create(self, file):
+        if not isinstance(file, localfile.LocalFile):
+            localFileFactory = localfile.Factory()
 
-    localFolder = folder.Folder(file)
-    for path in os.listdir(file.delegate):
-        localFile = localfile.fromParent(file, path)
-        localFolder.addChild(localFile)
+            return self.create(localFileFactory.create(file))
 
-    return localFolder
+        localFolder = folder.Folder(file)
+        for path in os.listdir(file.delegate):
+            localFile = localfile.fromParent(file, path)
+            localFolder.addChild(localFile)
+
+        return localFolder

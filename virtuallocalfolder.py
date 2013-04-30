@@ -8,13 +8,17 @@ import virtualfile
 import os
 
 def create(localPaths):
+    localFolderFactory = localfolder.Factory()
+    localFileFactory = localfile.Factory()
+
     virtualFolder = folder.Folder(virtualfile.VirtualFile(True))
     for localPath in localPaths:
         (head, tail) = os.path.split(localPath)
         if tail == '':
-            localFolder = localfolder.create(head)
+            localFolder = localFolderFactory.create(head)
             virtualFolder.addChildren(localFolder.children.values())
         else:
-            virtualFolder.addChild(localfile.LocalFile(localPath))
+            localFile = localFileFactory.create(localPath)
+            virtualFolder.addChild(localFile)
 
     return virtualFolder

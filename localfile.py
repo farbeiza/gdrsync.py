@@ -9,12 +9,6 @@ import os
 
 MD5_BUFFER_SIZE = 16 * utils.KIB
 
-def create(path):
-    if not os.path.exists(path):
-        raise RuntimeError('%s not found' % path)
-
-    return LocalFile(path)
-
 def fromParent(parent, path):
     return fromParentPath(parent.path, path)
 
@@ -59,3 +53,10 @@ class LocalFile(file.File):
     @property
     def exists(self):
         return os.path.exists(self.path)
+
+class Factory(object):
+    def create(self, path):
+        if not os.path.exists(path):
+            raise RuntimeError('%s not found' % path)
+
+        return LocalFile(path)

@@ -69,6 +69,8 @@ class GDRsync(object):
         self.args = args
 
         self.drive = driveutils.drive(self.args.saveCredentials)
+
+        self.localFolderFactory = localfolder.Factory()
         self.remoteFolderFactory = remotefolder.Factory(self.drive)
 
         self.copiedFiles = 0
@@ -391,7 +393,7 @@ class GDRsync(object):
         return remoteFile.withDelegate(file)
 
     def createLocalFolder(self, localFile):
-        return localfolder.create(localFile)
+        return self.localFolderFactory.create(localFile)
 
     def createRemoteFolder(self, remoteFile):
         if self.args.dryRun and (not remoteFile.exists):
