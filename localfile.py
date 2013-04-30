@@ -9,13 +9,14 @@ import os
 
 MD5_BUFFER_SIZE = 16 * utils.KIB
 
-def fromParent(parent, path):
-    return fromParentPath(parent.path, path)
+def fromParent(parent, path, folder = None):
+    return fromParentPath(parent.path, path, folder)
 
-def fromParentPath(parentPath, path):
-    path = os.path.join(parentPath, os.path.basename(path))
+def fromParentPath(parentPath, path, folder = None):
+    name = os.path.basename(path)
+    path = os.path.join(parentPath, name)
 
-    return LocalFile(path)
+    return LocalFile(path, folder)
 
 class LocalFile(file.File):
     def __init__(self, path, folder = None):

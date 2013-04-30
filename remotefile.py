@@ -6,7 +6,7 @@ import file
 import requestexecutor
 import utils
 
-import os
+import posixpath
 
 MIME_FOLDER = 'application/vnd.google-apps.folder'
 
@@ -16,7 +16,7 @@ def fromParent(parent, delegate):
     return fromParentPath(parent.path, delegate)
 
 def fromParentPath(parentPath, delegate):
-    path = os.path.join(parentPath, delegate['title'])
+    path = posixpath.join(parentPath, delegate['title'])
 
     return RemoteFile(path, delegate)
 
@@ -75,7 +75,7 @@ class Factory(object):
         return RemoteFile(path, file)
 
     def retrieveFileId(self, path):
-        (parent, name) = os.path.split(path)
+        (parent, name) = posixpath.split(path)
         if parent == path:
             return 'root'
         if name == '':

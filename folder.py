@@ -1,6 +1,5 @@
 #!/usr/bin/python
 
-import file
 import utils
 
 def empty(file):
@@ -51,6 +50,3 @@ class Folder(object):
 
     def withoutDuplicate(self):
         return Folder(self._file, self._children)
-
-    def createFile(self, name, folder = None):
-        return file.fromParent(self.file, name, folder)

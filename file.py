@@ -2,18 +2,7 @@
 
 import utils
 
-import math
 import hashlib
-import os
-
-def fromParent(parent, path, folder = None):
-    return fromParentPath(parent.path, path, folder)
-
-def fromParentPath(parentPath, path, folder = None):
-    name = os.path.basename(path)
-    path = os.path.join(parentPath, name)
-
-    return File(path, name, folder)
 
 class File(object):
     def __init__(self, path, name, folder = None):
