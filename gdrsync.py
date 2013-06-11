@@ -295,13 +295,21 @@ class GDRsync(object):
         if mimeType is None:
             mimeType = DEFAULT_MIME_TYPE
 
+        resumable = (localFile.size > 0)
         media = apiclient.http.MediaFileUpload(localFile.delegate,
-                mimetype = mimeType, chunksize = CHUNKSIZE, resumable = True)
+                mimetype = mimeType, chunksize = CHUNKSIZE,
+                resumable = resumable)
 
         def request():
             request = createRequest(body, media)
 
             start = time.time()
+            if not resumable:
+                file = request.execute()
+                self.logProgress(remoteFile.path, start, localFile.size)
+
+                return file
+
             while True:
                 (progress, file) = request.next_chunk()
                 if file is not None:
