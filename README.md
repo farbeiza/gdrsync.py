@@ -14,6 +14,10 @@ You can install it using easy_install:
 
     $ easy_install --upgrade google-api-python-client
 
+or pip:
+
+    $ pip install --upgrade google-api-python-client
+
 More information [here](https://developers.google.com/api-client-library/python/start/installation)
 
 ## Installation
