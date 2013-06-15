@@ -32,6 +32,9 @@ class LocalFile(file.File):
 
     @property
     def contentSize(self):
+        if not self.exists:
+            return 0
+
         return os.path.getsize(self.path)
 
     @property
@@ -54,6 +57,10 @@ class LocalFile(file.File):
     @property
     def exists(self):
         return os.path.exists(self.path)
+
+    @property
+    def link(self):
+        return os.path.islink(self.path)
 
 class Factory(object):
     def create(self, path):

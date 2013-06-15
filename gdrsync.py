@@ -19,6 +19,8 @@ parser.add_argument('-c', action = 'store_true',
 parser.add_argument('-d', action = 'store_true',
         help = 'delete duplicate and extraneous files from dest dirs',
         dest = 'delete')
+parser.add_argument('-L', action = 'store_true',
+        help = 'transform symlink into referent file/dir', dest = 'copyLinks')
 parser.add_argument('-n', action = 'store_true',
         help = 'perform a trial run with no changes made', dest = 'dryRun')
 parser.add_argument('-r', action = 'store_true',
@@ -193,6 +195,12 @@ class GDRsync(object):
         return output
 
     def fileOperation(self, localFile, remoteFile):
+        if (not self.args.copyLinks) and localFile.link:
+            LOGGER.info('%s: Skipping non-regular file... (Checked %d/%d files)',
+                    localFile.path, self.checkedFiles, self.totalFiles)
+
+            return None
+
         if remoteFile is None:
             if localFile.folder:
                 return self.insertFolder
