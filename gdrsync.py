@@ -55,6 +55,7 @@ import utils
 import virtuallocalfolder
 
 import apiclient.http
+import errno
 import mimetypes
 import time
 
@@ -100,7 +101,7 @@ class GDRsync(object):
 
         self.totalFiles += len(localFolder.children)
 
-        remoteFolder = self.copy(localFolder, remoteFolder)
+        remoteFolder = self.syncFolder(localFolder, remoteFolder)
 
         if not self.args.recursive:
             return
@@ -172,27 +173,39 @@ class GDRsync(object):
 
         return output
 
-    def copy(self, localFolder, remoteFolder):
+    def syncFolder(self, localFolder, remoteFolder):
         output = (remoteFolder.withoutChildren()
                 .addChildren(remoteFolder.children.values()))
         for localFile in localFolder.children.values():
             self.checkedFiles += 1
             self.checkedSize += localFile.size
 
-            remoteFile = remoteFolder.children.get(localFile.name)
+            try:
+                remoteFile = self.copy(localFile, remoteFolder)
+                if remoteFile is None:
+                    continue
 
-            fileOperation = self.fileOperation(localFile, remoteFile)
-            if fileOperation is None:
-                continue
+                output.addChild(remoteFile)
+            except OSError as error:
+                if error.errno != errno.ENOENT:
+                    raise
 
-            if remoteFile is None:
-                remoteFile = remoteFolder.createFile(localFile.name,
-                        localFile.folder)
-            remoteFile = fileOperation(localFile, remoteFile)
-
-            output.addChild(remoteFile)
+                LOGGER.warn('%s: No such file or directory.', localFile.path)
 
         return output
+
+    def copy(self, localFile, remoteFolder):
+        remoteFile = remoteFolder.children.get(localFile.name)
+
+        fileOperation = self.fileOperation(localFile, remoteFile)
+        if fileOperation is None:
+            return None
+
+        if remoteFile is None:
+            remoteFile = remoteFolder.createFile(localFile.name,
+                    localFile.folder)
+
+        return fileOperation(localFile, remoteFile)
 
     def fileOperation(self, localFile, remoteFile):
         if (not self.args.copyLinks) and localFile.link:
