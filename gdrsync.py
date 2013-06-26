@@ -316,7 +316,7 @@ class GDRsync(object):
         if mimeType is None:
             mimeType = DEFAULT_MIME_TYPE
 
-        resumable = (localFile.size > 0)
+        resumable = (localFile.size > CHUNKSIZE)
         media = apiclient.http.MediaFileUpload(localFile.delegate,
                 mimetype = mimeType, chunksize = CHUNKSIZE,
                 resumable = resumable)
