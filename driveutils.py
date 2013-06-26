@@ -13,8 +13,8 @@ TIMEOUT = 60 # seconds
 
 FIELDS = 'id, title, mimeType, createdDate, modifiedDate, md5Checksum, fileSize'
 
-CLIENT_ID = '387402765904.apps.googleusercontent.com'
-CLIENT_SECRET = 'WTj0xKbLAFjDqUeT2HGDZHCi'
+DEFAULT_CLIENT_ID = '387402765904.apps.googleusercontent.com'
+DEFAULT_CLIENT_SECRET = 'WTj0xKbLAFjDqUeT2HGDZHCi'
 
 OAUTH_SCOPE = 'https://www.googleapis.com/auth/drive'
 REDIRECT_URI = 'urn:ietf:wg:oauth:2.0:oob'
@@ -35,14 +35,19 @@ def drive(saveCredentials = None):
 
 def credentials(save = None):
     refreshToken = config.get('refreshToken')
+    clientId = config.get('clientId')
+    clientSecret = config.get('clientSecret')
+    if not clientId:
+      clientId = DEFAULT_CLIENT_ID
+      clientSecret = DEFAULT_CLIENT_SECRET
     if refreshToken:
         LOGGER.debug('Using stored refresh token...')
 
-        return oauth2client.client.OAuth2Credentials(None, CLIENT_ID,
-                CLIENT_SECRET, refreshToken, None,
+        return oauth2client.client.OAuth2Credentials(None, clientId,
+                clientSecret, refreshToken, None,
                 oauth2client.GOOGLE_TOKEN_URI, None)
 
-    flow = oauth2client.client.OAuth2WebServerFlow(CLIENT_ID, CLIENT_SECRET,
+    flow = oauth2client.client.OAuth2WebServerFlow(clientId, clientSecret,
             OAUTH_SCOPE, REDIRECT_URI,
             access_type = 'offline', approval_prompt = 'force')
 
