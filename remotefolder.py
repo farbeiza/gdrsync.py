@@ -11,6 +11,9 @@ import os
 CHILDREN_QUERY = '(\'%(parents)s\' in parents) and (not trashed)'
 CHILDREN_FIELDS = 'nextPageToken, items(%s)' % driveutils.FIELDS
 
+# https://developers.google.com/drive/v2/reference/files/list#maxResults
+LIST_MAX_RESULTS = 1000
+
 class RemoteFolder(folder.Folder):
     def __init__(self, file, children = None, duplicate = None):
         super(RemoteFolder, self).__init__(file, children, duplicate)
@@ -56,7 +59,7 @@ class Factory(object):
             while True:
                 list = (self.drive.files().list(q = query,
                         fields = CHILDREN_FIELDS, pageToken = pageToken,
-                        maxResults = 1000))
+                        maxResults = LIST_MAX_RESULTS))
 
                 files = list.execute()
                 for child in files['items']:
