@@ -34,12 +34,13 @@ def drive(saveCredentials = None):
     return apiclient.discovery.build('drive', 'v2', http = http)
 
 def credentials(save = None):
-    refreshToken = config.get('refreshToken')
     clientId = config.get('clientId')
     clientSecret = config.get('clientSecret')
     if not clientId:
-      clientId = DEFAULT_CLIENT_ID
-      clientSecret = DEFAULT_CLIENT_SECRET
+        clientId = DEFAULT_CLIENT_ID
+        clientSecret = DEFAULT_CLIENT_SECRET
+
+    refreshToken = config.get('refreshToken')
     if refreshToken:
         LOGGER.debug('Using stored refresh token...')
 
