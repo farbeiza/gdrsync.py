@@ -55,7 +55,8 @@ class Factory(object):
             pageToken = None
             while True:
                 list = (self.drive.files().list(q = query,
-                        fields = CHILDREN_FIELDS, pageToken = pageToken))
+                        fields = CHILDREN_FIELDS, pageToken = pageToken,
+                        maxResults = 1000))
 
                 files = list.execute()
                 for child in files['items']:
