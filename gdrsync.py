@@ -107,6 +107,9 @@ class GDRsync(object):
             return
 
         for localFile in localFolder.folders():
+            if (not self.args.copyLinks) and localFile.link:
+                continue
+
             remoteFile = remoteFolder.children[localFile.name]
 
             self._sync(self.createLocalFolder(localFile),

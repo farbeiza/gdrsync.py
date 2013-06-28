@@ -11,6 +11,8 @@ function logAndRun() {
 
 logAndRun "${GDRSYNC}" -vv -n "${DIR}/local/" /test
 
+logAndRun "${GDRSYNC}" -vv -r -n "${DIR}/local/" /test
+
 logAndRun "${GDRSYNC}" -vv -u "${DIR}/local/" /test
 
 logAndRun "${GDRSYNC}" -vv -dLr "${DIR}/local/" /test
