@@ -2,6 +2,9 @@
 
 KIB = 0x400 # bytes / kibibyte
 MIB = KIB * KIB # bytes / mebibyte
+CHUNKSIZE = 1 * MIB
+
+DEFAULT_MIME_TYPE = 'application/octet-stream'
 
 def firstNonNone(*arguments):
     for argument in arguments:

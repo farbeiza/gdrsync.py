@@ -6,6 +6,8 @@ import hashlib
 
 class File(object):
     def __init__(self, path, name, folder = None):
+        # Never instantiate the base class.
+        assert self.__class__ != File
         self._path = path
         self._name = name
         self._folder = utils.firstNonNone(folder, False)
@@ -38,7 +40,6 @@ class File(object):
         if self.folder:
             md5 = hashlib.md5()
             md5.update(self.name.encode('utf-8'))
-
             return md5.hexdigest()
 
         return self.contentMd5
@@ -49,4 +50,9 @@ class File(object):
 
     @property
     def exists(self):
-        return False
+        raise NotImplementedError()
+
+    # Select the first element of the tuple if the file is a local file, or the
+    # second element of the tuple if the file is a remote file.
+    def select(self, tuple):
+        raise NotImplementedError()
