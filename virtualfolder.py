@@ -3,11 +3,12 @@
 import folder
 import virtualfile
 
-import os
+class VirtualFolder(folder.Folder):
+    pass
 
 class Factory(object):
     def create(self, paths):
-        virtualFolder = folder.Folder(virtualfile.VirtualFile(True))
+        virtualFolder = VirtualFolder(virtualfile.VirtualFile(True))
         for path in paths:
             (head, tail) = self.split(path)
             if tail == '':

@@ -6,6 +6,8 @@ import hashlib
 
 class File(object):
     def __init__(self, path, name, folder = None):
+        # Never instantiate the base class.
+        assert self.__class__ != File
         self._path = path
         self._name = name
         self._folder = utils.firstNonNone(folder, False)
@@ -49,4 +51,4 @@ class File(object):
 
     @property
     def exists(self):
-        return False
+        raise NotImplementedError()

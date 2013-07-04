@@ -16,7 +16,7 @@ class BinaryUnit(object):
     def power(self, number):
         for power in range(len(PREFIXES)):
             if number < MAX_NUMBER:
-                return power;
+                return power
 
             number /= BASE
 

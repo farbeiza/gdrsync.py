@@ -6,8 +6,6 @@ import remotefile
 import requestexecutor
 import utils
 
-import os
-
 CHILDREN_QUERY = '(\'%(parents)s\' in parents) and (not trashed)'
 CHILDREN_FIELDS = 'nextPageToken, items(%s)' % driveutils.FIELDS
 
@@ -24,26 +22,28 @@ class RemoteFolder(folder.Folder):
     def withoutDuplicate(self):
         return RemoteFolder(self._file, self._children)
 
-    def createFile(self, name, folder = None, mimeType = None):
+    def createFile(self, name, folder = None):
         folder = utils.firstNonNone(folder, False)
 
         file = {'title': name}
-        if mimeType is None:
-            if folder:
-                file['mimeType'] = remotefile.MIME_FOLDER
-        else:
-            file['mimeType'] = mimeType
-
+        if folder:
+            file['mimeType'] = remotefile.MIME_FOLDER
         file['parents'] = [{'id': self.file.delegate['id']}]
 
         return remotefile.fromParent(self.file, file)
 
     def createFolder(self, name):
-        return self.createFile(name, remotefile.MIME_FOLDER)
+        return self.createFile(name, True)
 
 class Factory(object):
     def __init__(self, drive):
         self.drive = drive
+
+    def createEmpty(self, file):
+        # This is only used for dry run, create a marker id.
+        if not file.delegate.get('id'):
+            file.delegate['id'] = '-1'
+        return RemoteFolder(file)
 
     def create(self, file):
         if not isinstance(file, remotefile.RemoteFile):
