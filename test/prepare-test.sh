@@ -9,10 +9,10 @@ function logAndRun() {
     eval "${@}"
 }
 
-logAndRun "${GDRSYNC}" -vv -dLr "${DIR}/remote/" /test
+logAndRun "${GDRSYNC}" -vv -dr "${DIR}/remote/" /test
 
-find "${DIR}/local" | xargs touch -h -d '1978-08-03 01:23:45.6789987Z'
-touch -d '1970-01-01 00:00:00Z' "${DIR}/local/invalidDate"
+find "${DIR}/local" | xargs touch -h -t '197808030123.45'
+touch -t '197001010000.00' "${DIR}/local/invalidDate"
 
 cat <<-EOF
 Rename using the web interface:

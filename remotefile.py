@@ -3,6 +3,7 @@
 import date
 import driveutils
 import file
+import json
 import requestexecutor
 import utils
 
@@ -22,7 +23,6 @@ def fromParentPath(parentPath, delegate):
 
 class RemoteFile(file.File):
     def __init__(self, path, delegate, folder = None):
-        parent = unicode(path)
         name = delegate['title']
         folder = utils.firstNonNone(folder,
                 delegate.get('mimeType') == MIME_FOLDER)
@@ -30,6 +30,14 @@ class RemoteFile(file.File):
         super(RemoteFile, self).__init__(path, name, folder)
 
         self._delegate = delegate
+        try:
+            self._parsedMetada = json.loads(self._delegate.get('description',
+                                                               '{}'))
+        except:
+            self._parsedMetada = {}
+        self._parsedMetadaWithoutMd5 = self._parsedMetada.copy()
+        if 'cs' in self._parsedMetadaWithoutMd5.keys():
+          del self._parsedMetadaWithoutMd5['cs']
 
     @property
     def delegate(self):
@@ -37,22 +45,30 @@ class RemoteFile(file.File):
 
     @property
     def contentSize(self):
-        return int(self._delegate['fileSize'])
+        return self.metadata().get('fileSize', -1)
 
     @property
     def modified(self):
-        modifiedDate = self._delegate.get('modifiedDate',
-                self._delegate['createdDate'])
-
+        modifiedDate = self.metadata().get('modifiedDate',
+                                           '1970-1-1T00:00:00.0Z')
         return date.fromString(modifiedDate)
 
     @property
     def contentMd5(self):
-        return self._delegate['md5Checksum']
+        return self.metadata(True).get('cs', '')
 
     @property
     def exists(self):
         return 'id' in self._delegate
+
+    @property
+    def link(self):
+        return self.metadata().get('type', '') == 'link'
+
+    def metadata(self, withMd5 = False):
+        if withMd5:
+            return self._parsedMetada
+        return self._parsedMetadaWithoutMd5
 
     def withDelegate(self, delegate):
         return RemoteFile(self.path, delegate)

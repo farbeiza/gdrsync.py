@@ -5,14 +5,16 @@ import utils
 
 import os
 
-def empty(file):
-    return Folder(file)
-
 class Folder(object):
     def __init__(self, file, children = None, duplicate = None):
+        # Never instantiate the base class.
+        assert self.__class__ != Folder
         self._file = file
         self._children = utils.firstNonNone(children, {})
         self._duplicate = utils.firstNonNone(duplicate, [])
+
+    def _newFolder(self, file, children = None, duplicate = None):
+        return self.__class__(file, children, duplicate)
 
     def addChild(self, file):
         if file.name in self._children:
@@ -49,12 +51,10 @@ class Folder(object):
         return filter(lambda f: f.folder, self._children.values())
 
     def withoutChildren(self):
-        return Folder(self._file)
+        return self._newFolder(self._file)
 
     def withoutDuplicate(self):
-        return Folder(self._file, self._children)
+        return self._newFolder(self._file, self._children)
 
     def createFile(self, name, folder = None):
-        path = os.path.join(self._file.path, name)
-        
-        return file.File(path, name, folder)
+        raise NotImplementedError()

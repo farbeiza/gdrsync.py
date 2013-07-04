@@ -7,9 +7,9 @@ import virtualfolder
 import os
 
 class Factory(virtualfolder.Factory):
-    def __init__(self):
-        self._folderFactory = localfolder.Factory()
-        self._fileFactory = localfile.Factory()
+    def __init__(self, context):
+        self._folderFactory = localfolder.Factory(context)
+        self._fileFactory = localfile.Factory(context)
 
     def split(self, path):
         return os.path.split(path)

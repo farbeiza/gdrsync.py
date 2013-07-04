@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 DIR="$(dirname "${0}")"
 GDRSYNC="${DIR}/../gdrsync.py"
 
@@ -15,4 +17,4 @@ logAndRun "${GDRSYNC}" -vv -r -n "${DIR}/local/" /test
 
 logAndRun "${GDRSYNC}" -vv -u "${DIR}/local/" /test
 
-logAndRun "${GDRSYNC}" -vv -dLr "${DIR}/local/" /test
+logAndRun "${GDRSYNC}" -vv -dr "${DIR}/local/" /test
