@@ -82,7 +82,7 @@ class GDRsync(context.Context):
         self.checkedSize = 0
         self.totalFiles = 0
 
-        self.folderFactory = folder.Factory(self.drive, self)
+        self.folderFactory = folder.Factory(self)
 
     @property
     def drive(self):

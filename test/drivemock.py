@@ -25,6 +25,9 @@ class DriveMock:
             return DriveMock(0, False)
         return DriveMock(1)
 
+    def __nonzero__(self):
+        return False
+
     def next(self):
         if self._iteration > 0:
             self._iteration -= 1
