@@ -3,7 +3,6 @@
 import file
 import utils
 
-import os
 import posixpath
 
 class Folder(object):
@@ -60,9 +59,7 @@ class Folder(object):
     def createFile(self, name, folder = None):
         raise NotImplementedError()
 
-import localfile
 import localfolder
-import remotefile
 import remotefolder
 
 import urlparse

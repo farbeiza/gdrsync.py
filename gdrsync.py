@@ -53,10 +53,6 @@ import utils
 
 import apiclient.http
 import errno
-import io
-import json
-import mimetypes
-import shutil
 import time
 
 CHUNKSIZE = 1 * utils.MIB
