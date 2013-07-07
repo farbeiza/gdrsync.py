@@ -21,9 +21,3 @@ class Context(object):
 
     def addToBatchAndExecute(self, request):
         raise NotImplementedError()
-
-    def wrapSourceFileObject(self, sourceFileObject):
-        return sourceFileObject
-
-    def wrapTargetFileObject(self, targetFileObject):
-        return targetFileObject

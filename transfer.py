@@ -10,6 +10,18 @@ import shutil
 import time
 import os
 
+def _openSourceFile(sourceFile, targetFile):
+    return io.open(sourceFile.path, "rb")
+
+def _openTargetFile(sourceFile, targetFile):
+    if targetFile.exists:
+        mode = "r+b"
+    else:
+        mode = "wb"
+    output = io.open(targetFile.path, mode)
+    output.seek(0)
+    return output
+
 def _metadata(sourceFile):
     return json.dumps(sourceFile.metadata(withMd5 = True))
 
@@ -36,8 +48,7 @@ def _uploadLocalFile(context, sourceFile, targetFile):
     if sourceFile.link:
         media = None
     else:
-        input = context.wrapSourceFileObject(
-            io.open(sourceFile.path, "rb"))
+        input =_openSourceFile(sourceFile, targetFile)
         media = apiclient.http.MediaIoBaseUpload(
             input,
             mimetype = mimeType,
@@ -87,19 +98,14 @@ def _downloadRemoteFile(context, sourceFile, targetFile):
         return targetFile
 
     def request():
-        if targetFile.exists:
-            mode = "r+b"
-        else:
-            mode = "wb"
-        with io.open(targetFile.path, mode) as targetFd:
-            targetFd.seek(0)
+        with _openTargetFile(sourceFile, targetFile) as targetFd:
             http_request = apiclient.http.HttpRequest(
                 context.http,
                 None,
                 sourceFile.delegate.get('downloadUrl'),
                 headers = {})
             downloader = apiclient.http.MediaIoBaseDownload(
-                context.wrapTargetFileObject(targetFd),
+                targetFd,
                 http_request,
                 chunksize=utils.CHUNKSIZE)
 
@@ -152,7 +158,7 @@ def _touchLocalFile(context, sourceFile, targetFile):
             os.lchmod(targetFile.path, 0777)
     elif metadata.get('mode'):
         os.chmod(targetFile.path, metadata.get('mode'))
-    if not sourceFile.link:
+    if not sourceFile.link and not sourceFile.folder:
         os.utime(targetFile.path, (sourceFile.modified.seconds,
                                    sourceFile.modified.seconds))
 
