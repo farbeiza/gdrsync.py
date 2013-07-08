@@ -87,7 +87,7 @@ class Factory(object):
             else:
                 realFolder = self.createFromURL(head)
                 # Virtual folder are sources, so the file must already exist.
-                virtualFolder.addChild(realFolder.children['tail'])
+                virtualFolder.addChild(realFolder.children[tail])
 
         return virtualFolder
 
