@@ -35,12 +35,12 @@ class RemoteFile(file.File):
                                                                  '{}'))
         except:
             self._parsedMetadata = {}
-        if not self._parsedMetadata.get('modifiedDate'):
+        if self._parsedMetadata.get('modifiedDate') is None:
             self._parsedMetadata['modifiedDate'] = self._delegate.get('modifiedDate',
                 self._delegate.get('createdDate', None))
-        if not self._parsedMetadata.get('cs'):
+        if self._parsedMetadata.get('cs') is None:
             self._parsedMetadata['cs'] = self._delegate.get('md5Checksum')
-        if not self._parsedMetadata.get('fileSize'):
+        if self._parsedMetadata.get('fileSize') is None:
             self._parsedMetadata['fileSize'] = int(self._delegate.get('fileSize', 0))
         if self.link or self.folder:
             del self._parsedMetadata['modifiedDate']
