@@ -21,7 +21,6 @@ def fromParentPath(context, parentPath, path, folder = None):
 
 class LocalFile(file.File):
     def __init__(self, context, path, folder = None):
-        path = unicode(path)
         name = os.path.basename(path)
         folder = utils.firstNonNone(folder, os.path.isdir(path) and
                                             not os.path.islink(path))
@@ -74,7 +73,7 @@ class LocalFile(file.File):
             'fileSize': self.contentSize
         }
         if self.link:
-            metadata['target'] = os.readlink(self.path).encode('utf-8')
+            metadata['target'] = unicode(os.readlink(self.path), encoding='latin-1')
             metadata['type'] = 'link'
         else:
             if not self.folder:

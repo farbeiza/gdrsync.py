@@ -13,17 +13,23 @@ MIME_FOLDER = 'application/vnd.google-apps.folder'
 
 FILE_ID_QUERY = '(title = \'%(title)s\') and (not trashed)'
 
+def _getFilename(delegate):
+    title = delegate['title']
+    if title.__class__ == unicode:
+        return title.encode('latin-1', 'xmlcharrefreplace')
+    return title
+
 def fromParent(parent, delegate):
     return fromParentPath(parent.path, delegate)
 
 def fromParentPath(parentPath, delegate):
-    path = posixpath.join(parentPath, delegate['title'])
+    path = posixpath.join(parentPath, _getFilename(delegate))
 
     return RemoteFile(path, delegate)
 
 class RemoteFile(file.File):
     def __init__(self, path, delegate, folder = None):
-        name = delegate['title']
+        name = _getFilename(delegate)
         folder = utils.firstNonNone(folder,
                 delegate.get('mimeType') == MIME_FOLDER)
 

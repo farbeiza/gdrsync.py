@@ -25,7 +25,7 @@ class RemoteFolder(folder.Folder):
     def createFile(self, name, folder = None):
         folder = utils.firstNonNone(folder, False)
 
-        file = {'title': name}
+        file = {'title': unicode(name, encoding='latin-1')}
         if folder:
             file['mimeType'] = remotefile.MIME_FOLDER
         file['parents'] = [{'id': self.file.delegate['id']}]
