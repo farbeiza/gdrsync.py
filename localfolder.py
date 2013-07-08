@@ -1,5 +1,6 @@
 #!/usr/bin/python
 
+import file
 import folder
 import localfile
 
@@ -10,15 +11,21 @@ class LocalFolder(folder.Folder):
         return localfile.fromParent(self.file, name, folder)
 
 class Factory(object):
-    def create(self, file):
-        if not isinstance(file, localfile.LocalFile):
-            localFileFactory = localfile.Factory()
+    def __init__(self, context):
+        self.localFileFactory = localfile.Factory(context)
+        self.context = context
 
-            return self.create(localFileFactory.create(file))
+    def createEmpty(self, file):
+        return LocalFolder(file)
 
-        localFolder = folder.Folder(file)
-        for path in os.listdir(file.delegate):
-            localFile = localfile.fromParent(file, path)
+    def create(self, fileinstance):
+        if not isinstance(fileinstance, file.File):
+            return self.create(
+                self.localFileFactory.create(self.context, fileinstance))
+
+        localFolder = LocalFolder(fileinstance)
+        for path in os.listdir(fileinstance.path):
+            localFile = localfile.fromParent(fileinstance, path)
             localFolder.addChild(localFile)
 
         return localFolder

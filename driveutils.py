@@ -11,7 +11,7 @@ import re
 
 TIMEOUT = 60 # seconds
 
-FIELDS = 'id, title, mimeType, createdDate, modifiedDate, md5Checksum, fileSize'
+FIELDS = 'id, title, mimeType, createdDate, modifiedDate, md5Checksum, fileSize, description, downloadUrl'
 
 DEFAULT_CLIENT_ID = '387402765904.apps.googleusercontent.com'
 DEFAULT_CLIENT_SECRET = 'WTj0xKbLAFjDqUeT2HGDZHCi'
@@ -31,7 +31,8 @@ def drive(saveCredentials = None):
     http = (credentials(saveCredentials)
             .authorize(httplib2.Http(timeout = TIMEOUT)))
 
-    return apiclient.discovery.build('drive', 'v2', http = http)
+    return (apiclient.discovery.build('drive', 'v2', http = http),
+            http)
 
 def credentials(save = None):
     clientId = config.get('clientId')

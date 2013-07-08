@@ -51,3 +51,7 @@ class Date(object):
         dateTime = datetime.datetime.utcfromtimestamp(seconds)
 
         return dateTime.strftime(DATE_TIME_FORMAT)
+
+    @property
+    def seconds(self):
+        return self._seconds
