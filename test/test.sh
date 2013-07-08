@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 DIR="$(dirname "${0}")"
 GDRSYNC="${DIR}/../gdrsync.py"
 
@@ -9,10 +11,10 @@ function logAndRun() {
     eval "${@}"
 }
 
-logAndRun "${GDRSYNC}" -vv -n "${DIR}/local/" /test
+logAndRun "${GDRSYNC}" -vv -n "${DIR}/local/" gdrive:///test
 
-logAndRun "${GDRSYNC}" -vv -r -n "${DIR}/local/" /test
+logAndRun "${GDRSYNC}" -vv -r -n "${DIR}/local/" gdrive:///test
 
-logAndRun "${GDRSYNC}" -vv -u "${DIR}/local/" /test
+logAndRun "${GDRSYNC}" -vv -u "${DIR}/local/" gdrive:///test
 
-logAndRun "${GDRSYNC}" -vv -dLr "${DIR}/local/" /test
+logAndRun "${GDRSYNC}" -vv -dr "${DIR}/local/" gdrive:///test

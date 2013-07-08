@@ -3,6 +3,7 @@
 import date
 import driveutils
 import file
+import json
 import requestexecutor
 import utils
 
@@ -22,7 +23,6 @@ def fromParentPath(parentPath, delegate):
 
 class RemoteFile(file.File):
     def __init__(self, path, delegate, folder = None):
-        parent = unicode(path)
         name = delegate['title']
         folder = utils.firstNonNone(folder,
                 delegate.get('mimeType') == MIME_FOLDER)
@@ -30,6 +30,23 @@ class RemoteFile(file.File):
         super(RemoteFile, self).__init__(path, name, folder)
 
         self._delegate = delegate
+        try:
+            self._parsedMetadata = json.loads(self._delegate.get('description',
+                                                                 '{}'))
+        except:
+            self._parsedMetadata = {}
+        if not self._parsedMetadata.get('modifiedDate'):
+            self._parsedMetadata['modifiedDate'] = self._delegate.get('modifiedDate',
+                self._delegate.get('createdDate', None))
+        if not self._parsedMetadata.get('cs'):
+            self._parsedMetadata['cs'] = self._delegate.get('md5Checksum')
+        if not self._parsedMetadata.get('fileSize'):
+            self._parsedMetadata['fileSize'] = int(self._delegate.get('fileSize', 0))
+        if self.link or self.folder:
+            del self._parsedMetadata['modifiedDate']
+        self._parsedMetadataWithoutMd5 = self._parsedMetadata.copy()
+        if 'cs' in self._parsedMetadataWithoutMd5.keys():
+            del self._parsedMetadataWithoutMd5['cs']
 
     @property
     def delegate(self):
@@ -37,25 +54,35 @@ class RemoteFile(file.File):
 
     @property
     def contentSize(self):
-        return int(self._delegate['fileSize'])
+        return self.metadata().get('fileSize')
 
     @property
     def modified(self):
-        modifiedDate = self._delegate.get('modifiedDate',
-                self._delegate['createdDate'])
-
+        modifiedDate = self.metadata().get('modifiedDate')
         return date.fromString(modifiedDate)
 
     @property
     def contentMd5(self):
-        return self._delegate['md5Checksum']
+        return self.metadata(True).get('cs')
 
     @property
     def exists(self):
         return 'id' in self._delegate
 
+    @property
+    def link(self):
+        return self.metadata(True).get('type', '') == 'link'
+
+    def metadata(self, withMd5 = False):
+        if withMd5:
+            return self._parsedMetadata
+        return self._parsedMetadataWithoutMd5
+
     def withDelegate(self, delegate):
         return RemoteFile(self.path, delegate)
+
+    def select(self, tuple):
+        return tuple[1]
 
 class Factory(object):
     def __init__(self, drive):
