@@ -4,23 +4,21 @@
 import argparse
 import os
 
-parser = argparse.ArgumentParser(description = 'Copy files from a local system'
-        ' to a Google drive repository.')
+parser = argparse.ArgumentParser(description = 'Synchronize between a local'
+        ' system and a Google drive repository.')
 
-parser.add_argument('localPaths', nargs='+',
-        help = ('local paths. A trailing %s means "copy the contents of this'
+parser.add_argument('sourcePaths', nargs='+',
+        help = ('source paths. A trailing %s means "copy the contents of this'
                 ' directory", as opposed to "copy the directory itself"'
                 % os.path.sep),
-        metavar = 'LOCAL')
-parser.add_argument('remotePath', help = 'remote path', metavar = 'REMOTE')
+        metavar = 'SOURCE')
+parser.add_argument('targetPath', help = 'target path', metavar = 'TARGET')
 
 parser.add_argument('-c', action = 'store_true',
         help = 'skip based on checksum, not mod-time & size', dest = 'checksum')
 parser.add_argument('-d', action = 'store_true',
         help = 'delete duplicate and extraneous files from dest dirs',
         dest = 'delete')
-parser.add_argument('-L', action = 'store_true',
-        help = 'transform symlink into referent file/dir', dest = 'copyLinks')
 parser.add_argument('-n', action = 'store_true',
         help = 'perform a trial run with no changes made', dest = 'dryRun')
 parser.add_argument('-r', action = 'store_true',
@@ -46,17 +44,15 @@ if args.verbosity < len(LOG_LEVELS):
     logging.getLogger('oauth2client.util').setLevel(logging.ERROR)
 
 import binaryunit
+import context
 import driveutils
 import folder
-import localfolder
-import remotefolder
 import requestexecutor
+import transfer
 import utils
-import virtuallocalfolder
 
 import apiclient.http
 import errno
-import mimetypes
 import time
 
 CHUNKSIZE = 1 * utils.MIB
@@ -67,287 +63,240 @@ DEFAULT_MIME_TYPE = 'application/octet-stream'
 
 LOGGER = logging.getLogger(__name__)
 
-class GDRsync(object):
+class GDRsync(context.Context):
     def __init__(self, args):
         self.args = args
 
-        self.drive = driveutils.drive(self.args.saveCredentials)
-
-        self.localFolderFactory = localfolder.Factory()
-        self.remoteFolderFactory = remotefolder.Factory(self.drive)
+        (self._drive, self._http) = driveutils.drive(self.args.saveCredentials)
+        self.batch = None
+        self.nbBatch = 0
 
         self.copiedFiles = 0
         self.copiedSize = 0
         self.copiedTime = 0
-
         self.checkedFiles = 0
         self.checkedSize = 0
-
         self.totalFiles = 0
+
+        self.folderFactory = folder.Factory(self)
+
+    @property
+    def drive(self):
+        return self._drive
+
+    @property
+    def http(self):
+        return self._http
 
     def sync(self):
         LOGGER.info('Starting...')
 
-        virtualLocalFolder = virtuallocalfolder.Factory().create(self.args.localPaths)
-        remoteFolder = self.remoteFolderFactory.create(self.args.remotePath)
-        self._sync(virtualLocalFolder, remoteFolder)
+        sourceFolder = self.folderFactory.createVirtual(self.args.sourcePaths)
+        targetFolder = self.folderFactory.createFromURL(self.args.targetPath)
+        self._sync(sourceFolder, targetFolder)
+        self._flushBatch()
 
-        self.logResult();
+        self.logResult()
 
         LOGGER.info('End.')
 
-    def _sync(self, localFolder, remoteFolder):
-        remoteFolder = self.trash(localFolder, remoteFolder)
+    def _sync(self, sourceFolder, targetFolder):
+        targetFolder = self.trash(sourceFolder, targetFolder)
 
-        self.totalFiles += len(localFolder.children)
+        self.totalFiles += len(sourceFolder.children)
 
-        remoteFolder = self.syncFolder(localFolder, remoteFolder)
+        targetFolder = self.syncFolder(sourceFolder, targetFolder)
 
         if not self.args.recursive:
             return
 
-        for localFile in localFolder.folders():
-            if (not self.args.copyLinks) and localFile.link:
-                continue
+        for sourceFile in sourceFolder.folders():
+            targetFile = targetFolder.children[sourceFile.name]
 
-            remoteFile = remoteFolder.children[localFile.name]
+            self._sync(self.createSourceFolder(sourceFile),
+                    self.createTargetFolder(targetFile))
 
-            self._sync(self.createLocalFolder(localFile),
-                    self.createRemoteFolder(remoteFile))
-
-    def trash(self, localFolder, remoteFolder):
+    def trash(self, sourceFolder, targetFolder):
         if not self.args.delete:
-            return remoteFolder
+            return targetFolder
 
-        remoteFolder = self.trashDuplicate(localFolder, remoteFolder)
-        remoteFolder = self.trashExtraneous(localFolder, remoteFolder)
-        remoteFolder = self.trashDifferentType(localFolder, remoteFolder)
+        targetFolder = self.trashDuplicate(sourceFolder, targetFolder)
+        targetFolder = self.trashExtraneous(sourceFolder, targetFolder)
+        targetFolder = self.trashDifferentType(sourceFolder, targetFolder)
 
-        return remoteFolder
+        return targetFolder
 
-    def trashDuplicate(self, localFolder, remoteFolder):
-        for remoteFile in remoteFolder.duplicate:
-            LOGGER.debug('%s: Duplicate file.', remoteFile.path)
+    def trashDuplicate(self, sourceFolder, targetFolder):
+        for targetFile in targetFolder.duplicate:
+            LOGGER.debug('%s: Duplicate file.', targetFile.path)
 
-            remoteFile = self.trashFile(remoteFile)
+            self.trashFile(targetFile)
 
-        return remoteFolder.withoutDuplicate()
+        return targetFolder.withoutDuplicate()
 
-    def trashFile(self, remoteFile):
-        LOGGER.info('%s: Trashing file...', remoteFile.path)
+    def trashFile(self, targetFile):
+        LOGGER.info('%s: Trashing file...', targetFile.path)
         if self.args.dryRun:
-            return remoteFile
+            return targetFile
 
-        def request():
-            return (self.drive.files()
-                    .trash(fileId = remoteFile.delegate['id'],
-                            fields = driveutils.FIELDS)
-                    .execute())
+        transfer.trashFile(self, targetFile)
 
-        file = requestexecutor.execute(request)
-
-        return remoteFile.withDelegate(file)
-
-    def trashExtraneous(self, localFolder, remoteFolder):
-        output = remoteFolder.withoutChildren()
-        for remoteFile in remoteFolder.children.values():
-            if remoteFile.name in localFolder.children:
-                output.addChild(remoteFile)
+    def trashExtraneous(self, sourceFolder, targetFolder):
+        output = targetFolder.withoutChildren()
+        for targetFile in targetFolder.children.values():
+            if targetFile.name in sourceFolder.children:
+                output.addChild(targetFile)
                 continue
 
-            LOGGER.debug('%s: Extraneous file.', remoteFile.path)
+            LOGGER.debug('%s: Extraneous file.', targetFile.path)
 
-            remoteFile = self.trashFile(remoteFile)
+            self.trashFile(targetFile)
 
         return output
 
-    def trashDifferentType(self, localFolder, remoteFolder):
-        output = remoteFolder.withoutChildren()
-        for remoteFile in remoteFolder.children.values():
-            localFile = localFolder.children[remoteFile.name]
-            if localFile.folder == remoteFile.folder:
-                output.addChild(remoteFile)
+    def trashDifferentType(self, sourceFolder, targetFolder):
+        output = targetFolder.withoutChildren()
+        for targetFile in targetFolder.children.values():
+            sourceFile = sourceFolder.children[targetFile.name]
+            if sourceFile.folder == targetFile.folder:
+                output.addChild(targetFile)
                 continue
 
-            LOGGER.debug('%s: Different type: %s != %s.', remoteFile.path,
-                    localFile.folder, remoteFile.folder)
+            LOGGER.debug('%s: Different type: %s != %s.', targetFile.path,
+                    sourceFile.folder, targetFile.folder)
 
-            remoteFile = self.trashFile(remoteFile)
+            self.trashFile(targetFile)
 
         return output
 
-    def syncFolder(self, localFolder, remoteFolder):
-        output = (remoteFolder.withoutChildren()
-                .addChildren(remoteFolder.children.values()))
-        for localFile in localFolder.children.values():
+    def syncFolder(self, sourceFolder, targetFolder):
+        output = (targetFolder.withoutChildren()
+                .addChildren(targetFolder.children.values()))
+        for sourceFile in sourceFolder.children.values():
             self.checkedFiles += 1
-            self.checkedSize += localFile.size
+            self.checkedSize += sourceFile.size
 
             try:
-                remoteFile = self.copy(localFile, remoteFolder)
-                if remoteFile is None:
+                targetFile = self.copy(sourceFile, targetFolder)
+                if targetFile is None:
                     continue
 
-                output.addChild(remoteFile)
+                output.addChild(targetFile)
             except OSError as error:
                 if error.errno != errno.ENOENT:
                     raise
 
-                LOGGER.warn('%s: No such file or directory.', localFile.path)
+                LOGGER.warn('%s: No such file or directory.', sourceFile.path)
 
         return output
 
-    def copy(self, localFile, remoteFolder):
-        remoteFile = remoteFolder.children.get(localFile.name)
+    def copy(self, sourceFile, targetFolder):
+        targetFile = targetFolder.children.get(sourceFile.name)
 
-        fileOperation = self.fileOperation(localFile, remoteFile)
+        fileOperation = self.fileOperation(sourceFile, targetFile)
         if fileOperation is None:
             return None
 
-        if remoteFile is None:
-            remoteFile = remoteFolder.createFile(localFile.name,
-                    localFile.folder)
+        if targetFile is None:
+            targetFile = targetFolder.createFile(sourceFile.name,
+                    sourceFile.folder)
 
-        return fileOperation(localFile, remoteFile)
+        return fileOperation(sourceFile, targetFile)
 
-    def fileOperation(self, localFile, remoteFile):
-        if (not self.args.copyLinks) and localFile.link:
-            LOGGER.info('%s: Skipping non-regular file... (Checked %d/%d files)',
-                    localFile.path, self.checkedFiles, self.totalFiles)
-
-            return None
-
-        if remoteFile is None:
-            if localFile.folder:
+    def fileOperation(self, sourceFile, targetFile):
+        if targetFile is None:
+            if sourceFile.folder:
                 return self.insertFolder
 
             return self.insertFile
 
-        if self.args.update and (remoteFile.modified > localFile.modified):
+        if (self.args.update and
+            not sourceFile.link and
+            not sourceFile.folder and
+            targetFile.modified > sourceFile.modified):
             LOGGER.debug('%s: Newer destination file: %s < %s.',
-                    remoteFile.path, localFile.modified, remoteFile.modified)
+                    targetFile.path, sourceFile.modified, targetFile.modified)
         elif self.args.checksum:
-            fileOperation = self.checkChecksum(localFile, remoteFile)
+            fileOperation = self.checkChecksum(sourceFile, targetFile)
             if fileOperation is not None:
                 return fileOperation
 
-            fileOperation = self.checkSize(localFile, remoteFile)
+            fileOperation = self.checkSize(sourceFile, targetFile)
             if fileOperation is not None:
                 return fileOperation
 
-            fileOperation = self.checkModified(localFile, remoteFile)
+            fileOperation = self.checkMetadataModified(sourceFile, targetFile)
             if fileOperation is not None:
                 return fileOperation
         else:
-            fileOperation = self.checkSize(localFile, remoteFile)
+            fileOperation = self.checkSize(sourceFile, targetFile)
             if fileOperation is not None:
                 return fileOperation
 
-            fileOperation = self.checkModified(localFile, remoteFile)
+            fileOperation = self.checkMetadataModified(sourceFile, targetFile)
             if fileOperation is not None:
                 return fileOperation
 
-        LOGGER.debug('%s: Up to date. (Checked %d/%d files)', remoteFile.path,
+        LOGGER.debug('%s: Up to date. (Checked %d/%d files)', targetFile.path,
                 self.checkedFiles, self.totalFiles)
 
         return None
 
-    def checkChecksum(self, localFile, remoteFile):
-        if remoteFile.md5 == localFile.md5:
+    def checkChecksum(self, sourceFile, targetFile):
+        if targetFile.md5 == sourceFile.md5:
             return None
 
-        LOGGER.debug('%s: Different checksum: %s != %s.', remoteFile.path,
-                localFile.md5, remoteFile.md5)
+        LOGGER.debug('%s: Different checksum: %s != %s.', targetFile.path,
+                sourceFile.md5, targetFile.md5)
 
         return self.updateFile
 
-    def checkSize(self, localFile, remoteFile):
-        if remoteFile.size == localFile.size:
+    def checkSize(self, sourceFile, targetFile):
+        if targetFile.size == sourceFile.size:
             return None
 
-        LOGGER.debug('%s: Different size: %d != %d.', remoteFile.path,
-                localFile.size, remoteFile.size)
+        LOGGER.debug('%s: Different size: %d != %d.', targetFile.path,
+                sourceFile.size, targetFile.size)
 
         return self.updateFile
 
-    def checkModified(self, localFile, remoteFile):
-        if remoteFile.modified == localFile.modified:
+    def checkMetadataModified(self, sourceFile, targetFile):
+        if (targetFile.metadata() == sourceFile.metadata()):
             return None
 
-        fileOperation = self.checkChecksum(localFile, remoteFile)
+        fileOperation = self.checkChecksum(sourceFile, targetFile)
         if fileOperation is not None:
             return fileOperation
 
-        LOGGER.debug('%s: Different modified time: %s != %s.', remoteFile.path,
-                localFile.modified, remoteFile.modified)
+        LOGGER.debug('%s: Different metadata: %s != %s.',
+                     targetFile.path, sourceFile.metadata(),
+                     targetFile.metadata())
 
         return self.touch
 
-    def insertFolder(self, localFile, remoteFile):
+    def insertFolder(self, sourceFile, targetFile):
         LOGGER.info('%s: Inserting folder... (Checked %d/%d files)',
-                remoteFile.path, self.checkedFiles, self.totalFiles)
+                targetFile.path, self.checkedFiles, self.totalFiles)
         if self.args.dryRun:
-            return remoteFile
+            return targetFile
 
-        body = remoteFile.delegate.copy()
-        body['modifiedDate'] = str(localFile.modified)
-        def request():
-            return (self.drive.files().insert(body = body,
-                    fields = driveutils.FIELDS).execute())
+        return transfer.insertFolder(self, sourceFile, targetFile)
 
-        file = requestexecutor.execute(request)
-
-        return remoteFile.withDelegate(file)
-
-    def insertFile(self, localFile, remoteFile):
+    def insertFile(self, sourceFile, targetFile):
         LOGGER.info('%s: Inserting file... (Checked %d/%d files)',
-                remoteFile.path, self.checkedFiles, self.totalFiles)
+                targetFile.path, self.checkedFiles, self.totalFiles)
         if self.args.dryRun:
-            return remoteFile
+            return targetFile
 
-        def createRequest(body, media):
-            return (self.drive.files().insert(body = body, media_body = media,
-                    fields = driveutils.FIELDS))
+        return transfer.transferData(self, sourceFile, targetFile)
 
-        return self.copyFile(localFile, remoteFile, createRequest)
+    def updateFile(self, sourceFile, targetFile):
+        LOGGER.info('%s: Updating file... (Checked %d/%d files)',
+                targetFile.path, self.checkedFiles, self.totalFiles)
+        if self.args.dryRun:
+            return targetFile
 
-    def copyFile(self, localFile, remoteFile, createRequest):
-        body = remoteFile.delegate.copy()
-        body['modifiedDate'] = str(localFile.modified)
-
-        (mimeType, encoding) = mimetypes.guess_type(localFile.delegate)
-        if mimeType is None:
-            mimeType = DEFAULT_MIME_TYPE
-
-        resumable = (localFile.size > CHUNKSIZE)
-        media = apiclient.http.MediaFileUpload(localFile.delegate,
-                mimetype = mimeType, chunksize = CHUNKSIZE,
-                resumable = resumable)
-
-        def request():
-            request = createRequest(body, media)
-
-            start = time.time()
-            if not resumable:
-                file = request.execute()
-                self.logProgress(remoteFile.path, start, localFile.size)
-
-                return file
-
-            while True:
-                (progress, file) = request.next_chunk()
-                if file is not None:
-                    self.logProgress(remoteFile.path, start, localFile.size)
-
-                    return file
-
-                self.logProgress(remoteFile.path, start,
-                        progress.resumable_progress, progress.total_size,
-                        progress.progress(), False)
-
-        file = requestexecutor.execute(request)
-
-        return remoteFile.withDelegate(file)
+        return transfer.transferData(self, sourceFile, targetFile)
 
     def logProgress(self, path, start, bytesUploaded, bytesTotal = None,
             progress = 1.0, end = True):
@@ -386,52 +335,28 @@ class GDRsync(object):
     def eta(self, elapsed, bytesUploaded, bytesTotal):
         if bytesUploaded == 0:
             return 0
-        
+
         bS = bytesUploaded / elapsed
         finish = bytesTotal / bS
 
         return round(finish - elapsed)
 
-    def updateFile(self, localFile, remoteFile):
-        LOGGER.info('%s: Updating file... (Checked %d/%d files)',
-                remoteFile.path, self.checkedFiles, self.totalFiles)
+    def touch(self, sourceFile, targetFile):
+        LOGGER.info('%s: Updating metadata... (Checked %d/%d files)',
+                targetFile.path, self.checkedFiles, self.totalFiles)
         if self.args.dryRun:
-            return remoteFile
+            return targetFile
 
-        def createRequest(body, media):
-            return (self.drive.files()
-                    .update(fileId = remoteFile.delegate['id'], body = body,
-                            media_body = media, setModifiedDate = True,
-                            fields = driveutils.FIELDS))
+        return transfer.touchFile(self, sourceFile, targetFile)
 
-        return self.copyFile(localFile, remoteFile, createRequest)
+    def createSourceFolder(self, sourceFile):
+        return self.folderFactory.create(sourceFile)
 
-    def touch(self, localFile, remoteFile):
-        LOGGER.info('%s: Updating modified date... (Checked %d/%d files)',
-                remoteFile.path, self.checkedFiles, self.totalFiles)
-        if self.args.dryRun:
-            return remoteFile
+    def createTargetFolder(self, targetFile):
+        if self.args.dryRun and (not targetFile.exists):
+            return self.folderFactory.createEmpty(targetFile)
 
-        body = {'modifiedDate': str(localFile.modified)}
-
-        def request():
-            return (self.drive.files()
-                    .patch(fileId = remoteFile.delegate['id'], body = body,
-                            setModifiedDate = True, fields = driveutils.FIELDS)
-                    .execute())
-
-        file = requestexecutor.execute(request)
-
-        return remoteFile.withDelegate(file)
-
-    def createLocalFolder(self, localFile):
-        return self.localFolderFactory.create(localFile)
-
-    def createRemoteFolder(self, remoteFile):
-        if self.args.dryRun and (not remoteFile.exists):
-            return folder.empty(remoteFile)
-
-        return self.remoteFolderFactory.create(remoteFile)
+        return self.folderFactory.create(targetFile)
 
     def logResult(self):
         copiedSize = binaryunit.BinaryUnit(self.copiedSize, 'B')
@@ -445,5 +370,35 @@ class GDRsync(object):
                 self.copiedFiles, round(copiedSize.value), copiedSize.unit,
                 copiedTime, round(bS.value), bS.unit, self.checkedFiles,
                 round(checkedSize.value), checkedSize.unit)
+
+    def addToBatch(self, request, callback = None):
+        if not self.batch:
+            self.batch = apiclient.http.BatchHttpRequest()
+        self.batch.add(request, callback)
+        self.nbBatch += 1
+        if self.nbBatch > 500:
+            self._flushBatch()
+
+    def addToBatchAndExecute(self, request):
+	# If there is only one request to execute, do not bother setting up a
+	# batch.
+        if not self.batch:
+            return requestexecutor.execute(request.execute)
+
+        results = {}
+        def callback(id, result, exception):
+            results['id'] = id
+            results['result'] = result
+            results['exception'] = exception
+        self.addToBatch(request, callback)
+        self._flushBatch()
+        return results.get('result')
+
+    def _flushBatch(self):
+        if not self.batch:
+            return
+        requestexecutor.execute(self.batch.execute)
+        self.batch = None
+        self.nbBatch = 0
 
 GDRsync(args).sync()

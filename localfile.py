@@ -6,65 +6,92 @@ import utils
 import date
 import hashlib
 import os
+import stat
 
 MD5_BUFFER_SIZE = 16 * utils.KIB
 
 def fromParent(parent, path, folder = None):
-    return fromParentPath(parent.path, path, folder)
+    return fromParentPath(parent.context, parent.path, path, folder)
 
-def fromParentPath(parentPath, path, folder = None):
+def fromParentPath(context, parentPath, path, folder = None):
     name = os.path.basename(path)
     path = os.path.join(parentPath, name)
 
-    return LocalFile(path, folder)
+    return LocalFile(context, path, folder)
 
 class LocalFile(file.File):
-    def __init__(self, path, folder = None):
-        path = unicode(path)
+    def __init__(self, context, path, folder = None):
         name = os.path.basename(path)
-        folder = utils.firstNonNone(folder, os.path.isdir(path))
+        folder = utils.firstNonNone(folder, os.path.isdir(path) and
+                                            not os.path.islink(path))
 
         super(LocalFile, self).__init__(path, name, folder)
-
-    @property
-    def delegate(self):
-        return self.path
+        self._content_md5 = None
+        self.context = context
 
     @property
     def contentSize(self):
-        if not self.exists:
+        if not self.exists or self.link or self.folder:
             return 0
 
         return os.path.getsize(self.path)
 
     @property
     def modified(self):
-        return date.fromSeconds(os.path.getmtime(self.path))
+        file_stat = os.lstat(self.path)
+        return date.fromSeconds(file_stat.st_mtime)
 
     @property
     def contentMd5(self):
-        with open(self.path, mode = 'rb') as file:
+        if self._content_md5 is None:
             md5 = hashlib.md5()
-            while True:
-                data = file.read(MD5_BUFFER_SIZE)
-                if not data:
-                    break
+            if self.contentSize > 0:
+                with open(self.path, mode = 'rb') as file:
+                    while True:
+                        data = file.read(MD5_BUFFER_SIZE)
+                        if not data:
+                            break
 
-                md5.update(data)
+                        md5.update(data)
 
-        return md5.hexdigest()
+            self._content_md5 = md5.hexdigest()
+        return self._content_md5
 
     @property
     def exists(self):
-        return os.path.exists(self.path)
+        return os.path.lexists(self.path)
 
     @property
     def link(self):
         return os.path.islink(self.path)
 
+    def metadata(self, withMd5 = False):
+        file_stat = os.lstat(self.path)
+        metadata = {
+            'uid': file_stat.st_uid,
+            'gid': file_stat.st_gid,
+            'fileSize': self.contentSize
+        }
+        if self.link:
+            metadata['target'] = unicode(os.readlink(self.path), encoding='latin-1')
+            metadata['type'] = 'link'
+        else:
+            if not self.folder:
+                metadata['modifiedDate'] = str(self.modified)
+            metadata['mode'] = stat.S_IMODE(file_stat.st_mode)
+        if withMd5:
+            metadata['cs'] = self.md5
+        return metadata
+
+    def select(self, tuple):
+        return tuple[0]
+
 class Factory(object):
-    def create(self, path):
-        if not os.path.exists(path):
+    def __init__(self, context):
+        self.context = context
+
+    def create(self, context, path):
+        if not os.path.lexists(path):
             raise RuntimeError('%s not found' % path)
 
-        return LocalFile(path)
+        return LocalFile(context, path)
