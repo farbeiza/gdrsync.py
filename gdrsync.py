@@ -387,7 +387,7 @@ class GDRsync(context.Context):
 	# If there is only one request to execute, do not bother setting up a
 	# batch.
         if not self.batch:
-            return requestexecutor.execute(request)
+            return requestexecutor.execute(request.execute)
 
         results = {}
         def callback(id, result, exception):

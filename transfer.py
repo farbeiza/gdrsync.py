@@ -21,7 +21,7 @@ def _copyRemoteFile(context, sourceFile, targetFile):
     file = context.addToBatchAndExecute(context.drive.files().copy(
         fileId = sourceFile.delegate['id'],
         body = body,
-        fields = driveutils.FIELDS).execute)
+        fields = driveutils.FIELDS))
     return targetFile.withDelegate(file)
 
 def _uploadLocalFile(context, sourceFile, targetFile):
@@ -176,7 +176,7 @@ def _insertRemoteFolder(context, sourceFile, targetFile):
     body['description'] = _metadata(sourceFile)
     file = context.addToBatchAndExecute(context.drive.files().insert(
         body = body,
-        fields = driveutils.FIELDS).execute)
+        fields = driveutils.FIELDS))
     return targetFile.withDelegate(file)
 
 def trashFile(context, targetFile):
