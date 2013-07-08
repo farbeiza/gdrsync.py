@@ -36,8 +36,8 @@ class RemoteFolder(folder.Folder):
         return self.createFile(name, True)
 
 class Factory(object):
-    def __init__(self, drive):
-        self.drive = drive
+    def __init__(self, context):
+        self.context = context
 
     def createEmpty(self, file):
         # This is only used for dry run, create a marker id.
@@ -47,7 +47,7 @@ class Factory(object):
 
     def create(self, file):
         if not isinstance(file, remotefile.RemoteFile):
-            remoteFileFactory = remotefile.Factory(self.drive)
+            remoteFileFactory = remotefile.Factory(self.context)
 
             return self.create(remoteFileFactory.create(file))
 
@@ -57,7 +57,7 @@ class Factory(object):
 
             pageToken = None
             while True:
-                list = (self.drive.files().list(q = query,
+                list = (self.context.drive.files().list(q = query,
                         fields = CHILDREN_FIELDS, pageToken = pageToken,
                         maxResults = LIST_MAX_RESULTS))
 

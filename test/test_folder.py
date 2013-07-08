@@ -17,8 +17,10 @@ class TestFolder(unittest.TestCase):
     def test_folder_factory(self):
         os.chdir('%s/..' % sys.path[0])
         drive = drivemock.DriveMock()
+        context = lambda: None
+        context.drive = drive
 
-        factory = folder.Factory(drive, None)
+        factory = folder.Factory(context)
         self.assertIsInstance(factory.createFromURL('gdrive:///tmp'), remotefolder.RemoteFolder)
         self.assertIsInstance(factory.createFromURL('file:///tmp'), localfolder.LocalFolder)
         self.assertIsInstance(factory.createFromURL('/tmp'), localfolder.LocalFolder)

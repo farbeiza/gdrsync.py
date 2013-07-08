@@ -85,8 +85,8 @@ class RemoteFile(file.File):
         return tuple[1]
 
 class Factory(object):
-    def __init__(self, drive):
-        self.drive = drive
+    def __init__(self, context):
+        self.context = context
 
     def create(self, path):
         fileId = self.retrieveFileId(path)
@@ -94,7 +94,7 @@ class Factory(object):
             raise RuntimeError('%s not found' % path)
 
         def request():
-            return (self.drive.files().get(fileId = fileId,
+            return (self.context.drive.files().get(fileId = fileId,
                     fields = driveutils.FIELDS).execute())
 
         file = requestexecutor.execute(request)
@@ -115,8 +115,11 @@ class Factory(object):
         query = (FILE_ID_QUERY %
                 {'title' : driveutils.escapeQueryParameter(name)})
         def request():
-            return (self.drive.children().list(folderId = parentId, q = query,
-                    maxResults = 1, fields = 'items(id)') .execute())
+            return (self.context.drive.children().list(
+                folderId = parentId,
+                q = query,
+                maxResults = 1,
+                fields = 'items(id)').execute())
 
         children = requestexecutor.execute(request)
         for child in children.get('items'):

@@ -76,8 +76,8 @@ class Factory(object):
         def __init__(self):
             super(Factory.VirtualFolder, self).__init__(Factory.VirtualFile())
 
-    def __init__(self, drive, context):
-        self.remoteFolderFactory = remotefolder.Factory(drive)
+    def __init__(self, context):
+        self.remoteFolderFactory = remotefolder.Factory(context)
         self.localFolderFactory = localfolder.Factory(context)
 
     def createVirtual(self, paths):
