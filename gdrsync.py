@@ -415,10 +415,13 @@ class GDRsync(object):
         body = {'modifiedDate': str(localFile.modified)}
 
         def request():
-            return (self.drive.files()
+            request = (self.drive.files()
                     .patch(fileId = remoteFile.delegate['id'], body = body,
-                            setModifiedDate = True, fields = driveutils.FIELDS)
-                    .execute())
+                            setModifiedDate = True, fields = driveutils.FIELDS))
+            # Ignore Etags
+            request.headers['If-Match'] = '*'
+
+            return request.execute()
 
         file = requestexecutor.execute(request)
 
