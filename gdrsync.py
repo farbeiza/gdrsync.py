@@ -19,6 +19,12 @@ parser.add_argument('-c', action = 'store_true',
 parser.add_argument('-d', action = 'store_true',
         help = 'delete duplicate and extraneous files from dest dirs',
         dest = 'delete')
+parser.add_argument('-D', action = 'store_true',
+        help = 'also delete excluded files from dest dirs',
+        dest = 'deleteExcluded')
+parser.add_argument('-e', action = 'append',
+        help = 'exclude files matching PATTERN', metavar = 'PATTERN',
+        dest = 'exclude')
 parser.add_argument('-L', action = 'store_true',
         help = 'transform symlink into referent file/dir', dest = 'copyLinks')
 parser.add_argument('-n', action = 'store_true',
@@ -57,6 +63,7 @@ import virtuallocalfolder
 import apiclient.http
 import errno
 import mimetypes
+import re
 import time
 
 CHUNKSIZE = 1 * utils.MIB
@@ -70,6 +77,10 @@ LOGGER = logging.getLogger(__name__)
 class GDRsync(object):
     def __init__(self, args):
         self.args = args
+
+        self.exclude = []
+        if self.args.exclude is not None:
+            self.exclude = map(re.compile, self.args.exclude)
 
         self.drive = driveutils.drive(self.args.saveCredentials)
 
@@ -107,6 +118,10 @@ class GDRsync(object):
             return
 
         for localFile in localFolder.folders():
+            if self.isExcluded(localFile):
+                LOGGER.info('%s: Skipping excluded folder...', localFile.path)
+                continue
+
             if (not self.args.copyLinks) and localFile.link:
                 continue
 
@@ -116,16 +131,17 @@ class GDRsync(object):
                     self.createRemoteFolder(remoteFile))
 
     def trash(self, localFolder, remoteFolder):
-        if not self.args.delete:
-            return remoteFolder
-
         remoteFolder = self.trashDuplicate(localFolder, remoteFolder)
         remoteFolder = self.trashExtraneous(localFolder, remoteFolder)
         remoteFolder = self.trashDifferentType(localFolder, remoteFolder)
+        remoteFolder = self.trashExcluded(localFolder, remoteFolder)
 
         return remoteFolder
 
     def trashDuplicate(self, localFolder, remoteFolder):
+        if not self.args.delete:
+            return remoteFolder
+
         for remoteFile in remoteFolder.duplicate:
             LOGGER.debug('%s: Duplicate file.', remoteFile.path)
 
@@ -149,6 +165,9 @@ class GDRsync(object):
         return remoteFile.withDelegate(file)
 
     def trashExtraneous(self, localFolder, remoteFolder):
+        if not self.args.delete:
+            return remoteFolder
+
         output = remoteFolder.withoutChildren()
         for remoteFile in remoteFolder.children.values():
             if remoteFile.name in localFolder.children:
@@ -162,6 +181,9 @@ class GDRsync(object):
         return output
 
     def trashDifferentType(self, localFolder, remoteFolder):
+        if not self.args.delete:
+            return remoteFolder
+
         output = remoteFolder.withoutChildren()
         for remoteFile in remoteFolder.children.values():
             localFile = localFolder.children[remoteFile.name]
@@ -175,6 +197,29 @@ class GDRsync(object):
             remoteFile = self.trashFile(remoteFile)
 
         return output
+
+    def trashExcluded(self, localFolder, remoteFolder):
+        if not self.args.deleteExcluded:
+            return remoteFolder
+
+        output = remoteFolder.withoutChildren()
+        for remoteFile in remoteFolder.children.values():
+            localFile = localFolder.children[remoteFile.name]
+            if not self.isExcluded(localFile):
+                output.addChild(remoteFile)
+                continue
+
+            LOGGER.debug('%s: Excluded file.', remoteFile.path)
+
+            remoteFile = self.trashFile(remoteFile)
+
+        return output
+
+    def isExcluded(self, localFile):
+        if localFile.path is None:
+            return False
+
+        return any(re.match(localFile.path) for re in self.exclude)
 
     def syncFolder(self, localFolder, remoteFolder):
         output = (remoteFolder.withoutChildren()
@@ -211,6 +256,12 @@ class GDRsync(object):
         return fileOperation(localFile, remoteFile)
 
     def fileOperation(self, localFile, remoteFile):
+        if self.isExcluded(localFile):
+            LOGGER.info('%s: Skipping excluded file... (Checked %d/%d files)',
+                    localFile.path, self.checkedFiles, self.totalFiles)
+
+            return None
+
         if (not self.args.copyLinks) and localFile.link:
             LOGGER.info('%s: Skipping non-regular file... (Checked %d/%d files)',
                     localFile.path, self.checkedFiles, self.totalFiles)
@@ -386,7 +437,7 @@ class GDRsync(object):
     def eta(self, elapsed, bytesUploaded, bytesTotal):
         if bytesUploaded == 0:
             return 0
-        
+
         bS = bytesUploaded / elapsed
         finish = bytesTotal / bS
 

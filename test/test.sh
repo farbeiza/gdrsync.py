@@ -9,6 +9,6 @@ GDRSYNC="${DIR}/../gdrsync.py"
 
 "${GDRSYNC}" -vv -r -n "${DIR}/local/" /test
 
-"${GDRSYNC}" -vv -u "${DIR}/local/" /test
+"${GDRSYNC}" -vv -u -e ".*/excluded.*" "${DIR}/local/" /test
 
-"${GDRSYNC}" -vv -dLr "${DIR}/local/" /test
+"${GDRSYNC}" -vv -dDLr -e ".*/excluded.*" -e ".*/deleteExcluded.*" "${DIR}/local/" /test
