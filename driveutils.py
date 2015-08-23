@@ -48,9 +48,10 @@ def credentials(save = None):
                 clientSecret, refreshToken, None,
                 oauth2client.GOOGLE_TOKEN_URI, None)
 
-    flow = oauth2client.client.OAuth2WebServerFlow(clientId, clientSecret,
-            OAUTH_SCOPE, REDIRECT_URI,
-            access_type = 'offline', approval_prompt = 'force')
+    flow = oauth2client.client.OAuth2WebServerFlow(clientId, clientSecret, OAUTH_SCOPE,
+                                                   redirect_uri = REDIRECT_URI,
+                                                   access_type = 'offline',
+                                                   approval_prompt = 'force')
 
     url = flow.step1_get_authorize_url()
     print('Please open the following URL: ')
