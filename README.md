@@ -4,9 +4,7 @@ Simple rsync utility for Google Drive (for uploading only).
 
 ## Prerequisites
 
-### Python 2
-
-Google API libraries do not support Python 3 yet.
+### Python 3.3+
 
 ### Google APIs Client Library for Python
 
@@ -26,11 +24,11 @@ You can just copy the directory anywhere and start using it:
 
     $ gdrsync.py -h
 
-You may need to change the first line of gdrsync.py to point to your python 2
+You may need to change the first line of gdrsync.py to point to your python
 executable. For instance, if you are using Arch linux, you should change that
 line to:
 
-    #!/usr/bin/python2
+    #!/usr/bin/python3
 
 ## Configuration
 
