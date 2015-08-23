@@ -61,7 +61,7 @@ def credentials(save = None):
     credentials = flow.step2_exchange(authorizationCode)
 
     refreshToken = credentials.refresh_token
-    print('Refresh token: ' + refreshToken)
+    print('Refresh token: ', refreshToken)
 
     if utils.firstNonNone(save, False):
         config.set('refreshToken', refreshToken)

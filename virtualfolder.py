@@ -12,7 +12,7 @@ class Factory(object):
             (head, tail) = self.split(path)
             if tail == '':
                 pathFolder = self.folderFactory.create(head)
-                virtualFolder.addChildren(list(pathFolder.children.values()))
+                virtualFolder.addChildren(pathFolder.children.values())
             else:
                 pathFile = self.fileFactory.create(path)
                 virtualFolder.addChild(pathFile)

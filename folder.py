@@ -43,10 +43,10 @@ class Folder(object):
         return self._duplicate
 
     def files(self):
-        return [f for f in list(self._children.values()) if not f.folder]
+        return [child for child in self._children.values() if not child.folder]
 
     def folders(self):
-        return [f for f in list(self._children.values()) if f.folder]
+        return [child for child in self._children.values() if child.folder]
 
     def withoutChildren(self):
         return Folder(self._file)
@@ -56,5 +56,5 @@ class Folder(object):
 
     def createFile(self, name, folder = None):
         path = os.path.join(self._file.path, name)
-        
+
         return file.File(path, name, folder)

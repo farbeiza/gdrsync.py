@@ -20,7 +20,7 @@ def fromParentPath(parentPath, path, folder = None):
 
 class LocalFile(file.File):
     def __init__(self, path, folder = None):
-        path = str(path)
+        path = path
         name = os.path.basename(path)
         folder = utils.firstNonNone(folder, os.path.isdir(path))
 

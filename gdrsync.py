@@ -48,8 +48,8 @@ LOG_LEVEL = LOG_LEVELS[min(args.verbosity, len(LOG_LEVELS) - 1)]
 logging.basicConfig(format = '%(asctime)s: %(levelname)s: %(name)s: %(message)s',
         level = LOG_LEVEL)
 if args.verbosity < len(LOG_LEVELS):
-    logging.getLogger('apiclient.discovery').setLevel(logging.WARNING)
-    logging.getLogger('oauth2client.util').setLevel(logging.ERROR)
+    logging.getLogger('googleapiclient.discovery').setLevel(logging.WARNING)
+    logging.getLogger('oauth2client.client').setLevel(logging.ERROR)
 
 import binaryunit
 import driveutils
@@ -80,7 +80,7 @@ class GDRsync(object):
 
         self.exclude = []
         if self.args.exclude is not None:
-            self.exclude = list(map(re.compile, self.args.exclude))
+            self.exclude = [re.compile(exclude) for exclude in self.args.exclude]
 
         self.drive = driveutils.drive(self.args.saveCredentials)
 
@@ -169,7 +169,7 @@ class GDRsync(object):
             return remoteFolder
 
         output = remoteFolder.withoutChildren()
-        for remoteFile in list(remoteFolder.children.values()):
+        for remoteFile in remoteFolder.children.values():
             if remoteFile.name in localFolder.children:
                 output.addChild(remoteFile)
                 continue
@@ -185,7 +185,7 @@ class GDRsync(object):
             return remoteFolder
 
         output = remoteFolder.withoutChildren()
-        for remoteFile in list(remoteFolder.children.values()):
+        for remoteFile in remoteFolder.children.values():
             localFile = localFolder.children[remoteFile.name]
             if localFile.folder == remoteFile.folder:
                 output.addChild(remoteFile)
@@ -203,7 +203,7 @@ class GDRsync(object):
             return remoteFolder
 
         output = remoteFolder.withoutChildren()
-        for remoteFile in list(remoteFolder.children.values()):
+        for remoteFile in remoteFolder.children.values():
             localFile = localFolder.children[remoteFile.name]
             if not self.isExcluded(localFile):
                 output.addChild(remoteFile)
@@ -223,8 +223,8 @@ class GDRsync(object):
 
     def syncFolder(self, localFolder, remoteFolder):
         output = (remoteFolder.withoutChildren()
-                .addChildren(list(remoteFolder.children.values())))
-        for localFile in list(localFolder.children.values()):
+                .addChildren(remoteFolder.children.values()))
+        for localFile in localFolder.children.values():
             self.checkedFiles += 1
             self.checkedSize += localFile.size
 
