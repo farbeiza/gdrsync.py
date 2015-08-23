@@ -53,15 +53,15 @@ def credentials(save = None):
             access_type = 'offline', approval_prompt = 'force')
 
     url = flow.step1_get_authorize_url()
-    print 'Please open the following URL: '
-    print url
-    authorizationCode = raw_input('Copy and paste the authorization code: ').strip()
+    print('Please open the following URL: ')
+    print(url)
+    authorizationCode = input('Copy and paste the authorization code: ').strip()
 
     LOGGER.debug('Requesting new refresh token...')
     credentials = flow.step2_exchange(authorizationCode)
 
     refreshToken = credentials.refresh_token
-    print 'Refresh token: ' + refreshToken
+    print('Refresh token: ' + refreshToken)
 
     if utils.firstNonNone(save, False):
         config.set('refreshToken', refreshToken)

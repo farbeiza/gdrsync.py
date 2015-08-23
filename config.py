@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-import ConfigParser
+import configparser
 import logging
 import os
 
@@ -8,7 +8,7 @@ APPLICATION_NAME = 'gdrsync.py'
 CONFIG_FILE_NAME = '.' + APPLICATION_NAME
 CONFIG_FILE = os.path.expanduser(os.path.join('~', CONFIG_FILE_NAME))
 
-PARSER = ConfigParser.SafeConfigParser()
+PARSER = configparser.SafeConfigParser()
 PARSER.read(CONFIG_FILE)
 
 SECTION = 'gdrsync'

@@ -43,10 +43,10 @@ class Folder(object):
         return self._duplicate
 
     def files(self):
-        return filter(lambda f: not f.folder, self._children.values())
+        return [f for f in list(self._children.values()) if not f.folder]
 
     def folders(self):
-        return filter(lambda f: f.folder, self._children.values())
+        return [f for f in list(self._children.values()) if f.folder]
 
     def withoutChildren(self):
         return Folder(self._file)

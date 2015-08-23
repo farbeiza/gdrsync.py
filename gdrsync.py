@@ -80,7 +80,7 @@ class GDRsync(object):
 
         self.exclude = []
         if self.args.exclude is not None:
-            self.exclude = map(re.compile, self.args.exclude)
+            self.exclude = list(map(re.compile, self.args.exclude))
 
         self.drive = driveutils.drive(self.args.saveCredentials)
 
@@ -169,7 +169,7 @@ class GDRsync(object):
             return remoteFolder
 
         output = remoteFolder.withoutChildren()
-        for remoteFile in remoteFolder.children.values():
+        for remoteFile in list(remoteFolder.children.values()):
             if remoteFile.name in localFolder.children:
                 output.addChild(remoteFile)
                 continue
@@ -185,7 +185,7 @@ class GDRsync(object):
             return remoteFolder
 
         output = remoteFolder.withoutChildren()
-        for remoteFile in remoteFolder.children.values():
+        for remoteFile in list(remoteFolder.children.values()):
             localFile = localFolder.children[remoteFile.name]
             if localFile.folder == remoteFile.folder:
                 output.addChild(remoteFile)
@@ -203,7 +203,7 @@ class GDRsync(object):
             return remoteFolder
 
         output = remoteFolder.withoutChildren()
-        for remoteFile in remoteFolder.children.values():
+        for remoteFile in list(remoteFolder.children.values()):
             localFile = localFolder.children[remoteFile.name]
             if not self.isExcluded(localFile):
                 output.addChild(remoteFile)
@@ -223,8 +223,8 @@ class GDRsync(object):
 
     def syncFolder(self, localFolder, remoteFolder):
         output = (remoteFolder.withoutChildren()
-                .addChildren(remoteFolder.children.values()))
-        for localFile in localFolder.children.values():
+                .addChildren(list(remoteFolder.children.values())))
+        for localFile in list(localFolder.children.values()):
             self.checkedFiles += 1
             self.checkedSize += localFile.size
 
