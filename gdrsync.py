@@ -56,21 +56,12 @@ import driveutils
 import folder
 import localfolder
 import remotefolder
-import requestexecutor
-import utils
+import summary
+import uploadmanager
 import virtuallocalfolder
 
-import apiclient.http
 import errno
-import mimetypes
 import re
-import time
-
-CHUNKSIZE = 1 * utils.MIB
-
-PERCENTAGE = 100.0
-
-DEFAULT_MIME_TYPE = 'application/octet-stream'
 
 LOGGER = logging.getLogger(__name__)
 
@@ -82,19 +73,14 @@ class GDRsync(object):
         if self.args.exclude is not None:
             self.exclude = [re.compile(exclude) for exclude in self.args.exclude]
 
-        self.drive = driveutils.drive(self.args.saveCredentials)
+        drive = driveutils.drive(self.args.saveCredentials)
 
         self.localFolderFactory = localfolder.Factory()
-        self.remoteFolderFactory = remotefolder.Factory(self.drive)
+        self.remoteFolderFactory = remotefolder.Factory(drive)
 
-        self.copiedFiles = 0
-        self.copiedSize = 0
-        self.copiedTime = 0
+        self._summary = summary.Summary()
 
-        self.checkedFiles = 0
-        self.checkedSize = 0
-
-        self.totalFiles = 0
+        self.transferManager = uploadmanager.UploadManager(drive, self._summary)
 
     def sync(self):
         LOGGER.info('Starting...')
@@ -110,7 +96,7 @@ class GDRsync(object):
     def _sync(self, localFolder, remoteFolder):
         remoteFolder = self.trash(localFolder, remoteFolder)
 
-        self.totalFiles += len(localFolder.children)
+        self._summary.addTotalFiles(len(localFolder.children))
 
         remoteFolder = self.syncFolder(localFolder, remoteFolder)
 
@@ -154,15 +140,7 @@ class GDRsync(object):
         if self.args.dryRun:
             return remoteFile
 
-        def request():
-            return (self.drive.files()
-                    .trash(fileId = remoteFile.delegate['id'],
-                            fields = driveutils.FIELDS)
-                    .execute())
-
-        file = requestexecutor.execute(request)
-
-        return remoteFile.withDelegate(file)
+        return self.transferManager.remove(remoteFile)
 
     def trashExtraneous(self, localFolder, remoteFolder):
         if not self.args.delete:
@@ -225,8 +203,8 @@ class GDRsync(object):
         output = (remoteFolder.withoutChildren()
                 .addChildren(remoteFolder.children.values()))
         for localFile in localFolder.children.values():
-            self.checkedFiles += 1
-            self.checkedSize += localFile.size
+            self._summary.addCheckedFiles(1)
+            self._summary.addCheckedSize(localFile.size)
 
             try:
                 remoteFile = self.copy(localFile, remoteFolder)
@@ -258,13 +236,13 @@ class GDRsync(object):
     def fileOperation(self, localFile, remoteFile):
         if self.isExcluded(localFile):
             LOGGER.info('%s: Skipping excluded file... (Checked %d/%d files)',
-                    localFile.path, self.checkedFiles, self.totalFiles)
+                    localFile.path, self._summary.checkedFiles, self._summary.totalFiles)
 
             return None
 
         if (not self.args.copyLinks) and localFile.link:
             LOGGER.info('%s: Skipping non-regular file... (Checked %d/%d files)',
-                    localFile.path, self.checkedFiles, self.totalFiles)
+                    localFile.path, self._summary.checkedFiles, self._summary.totalFiles)
 
             return None
 
@@ -299,7 +277,7 @@ class GDRsync(object):
                 return fileOperation
 
         LOGGER.debug('%s: Up to date. (Checked %d/%d files)', remoteFile.path,
-                self.checkedFiles, self.totalFiles)
+                self._summary.checkedFiles, self._summary.totalFiles)
 
         return None
 
@@ -336,147 +314,35 @@ class GDRsync(object):
 
     def insertFolder(self, localFile, remoteFile):
         LOGGER.info('%s: Inserting folder... (Checked %d/%d files)',
-                remoteFile.path, self.checkedFiles, self.totalFiles)
+                remoteFile.path, self._summary.checkedFiles, self._summary.totalFiles)
         if self.args.dryRun:
             return remoteFile
 
-        body = remoteFile.delegate.copy()
-        body['modifiedDate'] = str(localFile.modified)
-        def request():
-            return (self.drive.files().insert(body = body,
-                    fields = driveutils.FIELDS).execute())
-
-        file = requestexecutor.execute(request)
-
-        return remoteFile.withDelegate(file)
+        return self.transferManager.insertFolder(localFile, remoteFile)
 
     def insertFile(self, localFile, remoteFile):
         LOGGER.info('%s: Inserting file... (Checked %d/%d files)',
-                remoteFile.path, self.checkedFiles, self.totalFiles)
+                remoteFile.path, self._summary.checkedFiles, self._summary.totalFiles)
         if self.args.dryRun:
             return remoteFile
 
-        def createRequest(body, media):
-            return (self.drive.files().insert(body = body, media_body = media,
-                    fields = driveutils.FIELDS))
-
-        return self.copyFile(localFile, remoteFile, createRequest)
-
-    def copyFile(self, localFile, remoteFile, createRequest):
-        body = remoteFile.delegate.copy()
-        body['modifiedDate'] = str(localFile.modified)
-
-        (mimeType, encoding) = mimetypes.guess_type(localFile.delegate)
-        if mimeType is None:
-            mimeType = DEFAULT_MIME_TYPE
-
-        resumable = (localFile.size > CHUNKSIZE)
-        media = apiclient.http.MediaFileUpload(localFile.delegate,
-                mimetype = mimeType, chunksize = CHUNKSIZE,
-                resumable = resumable)
-
-        def request():
-            request = createRequest(body, media)
-
-            start = time.time()
-            if not resumable:
-                file = request.execute()
-                self.logProgress(remoteFile.path, start, localFile.size)
-
-                return file
-
-            while True:
-                (progress, file) = request.next_chunk()
-                if file is not None:
-                    self.logProgress(remoteFile.path, start, localFile.size)
-
-                    return file
-
-                self.logProgress(remoteFile.path, start,
-                        progress.resumable_progress, progress.total_size,
-                        progress.progress(), False)
-
-        file = requestexecutor.execute(request)
-
-        return remoteFile.withDelegate(file)
-
-    def logProgress(self, path, start, bytesUploaded, bytesTotal = None,
-            progress = 1.0, end = True):
-        if bytesTotal is None:
-            bytesTotal = bytesUploaded
-
-        elapsed = time.time() - start
-
-        b = binaryunit.BinaryUnit(bytesUploaded, 'B')
-        progressPercentage = round(progress * PERCENTAGE)
-        s = round(elapsed)
-
-        bS = binaryunit.BinaryUnit(self.bS(bytesUploaded, elapsed), 'B/s')
-
-        if end:
-            self.copiedFiles += 1
-            self.copiedSize += bytesTotal
-            self.copiedTime += elapsed
-
-            LOGGER.info('%s: %d%% (%d%s / %ds = %d%s) #%d',
-                    path, progressPercentage, round(b.value), b.unit, s,
-                    round(bS.value), bS.unit, self.copiedFiles)
-        else:
-            eta = self.eta(elapsed, bytesUploaded, bytesTotal)
-
-            LOGGER.info('%s: %d%% (%d%s / %ds = %d%s) ETA: %ds', path,
-                    progressPercentage, round(b.value), b.unit, s,
-                    round(bS.value), bS.unit, eta)
-
-    def bS(self, bytesUploaded, elapsed):
-        if round(elapsed) == 0:
-            return 0
-
-        return bytesUploaded / elapsed
-
-    def eta(self, elapsed, bytesUploaded, bytesTotal):
-        if bytesUploaded == 0:
-            return 0
-
-        bS = bytesUploaded / elapsed
-        finish = bytesTotal / bS
-
-        return round(finish - elapsed)
+        return self.transferManager.insertFile(localFile, remoteFile)
 
     def updateFile(self, localFile, remoteFile):
         LOGGER.info('%s: Updating file... (Checked %d/%d files)',
-                remoteFile.path, self.checkedFiles, self.totalFiles)
+                remoteFile.path, self._summary.checkedFiles, self._summary.totalFiles)
         if self.args.dryRun:
             return remoteFile
 
-        def createRequest(body, media):
-            return (self.drive.files()
-                    .update(fileId = remoteFile.delegate['id'], body = body,
-                            media_body = media, setModifiedDate = True,
-                            fields = driveutils.FIELDS))
-
-        return self.copyFile(localFile, remoteFile, createRequest)
+        return self.transferManager.updateFile(localFile, remoteFile)
 
     def touch(self, localFile, remoteFile):
         LOGGER.info('%s: Updating modified date... (Checked %d/%d files)',
-                remoteFile.path, self.checkedFiles, self.totalFiles)
+                remoteFile.path, self._summary.checkedFiles, self._summary.totalFiles)
         if self.args.dryRun:
             return remoteFile
 
-        body = {'modifiedDate': str(localFile.modified)}
-
-        def request():
-            request = (self.drive.files()
-                    .patch(fileId = remoteFile.delegate['id'], body = body,
-                            setModifiedDate = True, fields = driveutils.FIELDS))
-            # Ignore Etags
-            request.headers['If-Match'] = '*'
-
-            return request.execute()
-
-        file = requestexecutor.execute(request)
-
-        return remoteFile.withDelegate(file)
+        return self.transferManager.touch(localFile, remoteFile)
 
     def createLocalFolder(self, localFile):
         return self.localFolderFactory.create(localFile)
@@ -488,16 +354,16 @@ class GDRsync(object):
         return self.remoteFolderFactory.create(remoteFile)
 
     def logResult(self):
-        copiedSize = binaryunit.BinaryUnit(self.copiedSize, 'B')
-        copiedTime = round(self.copiedTime)
-        bS = binaryunit.BinaryUnit(self.bS(self.copiedSize, self.copiedTime),
-                'B/s')
+        copiedSize = self._summary.copiedSize
+        copiedTime = round(self._summary.copiedTime)
+        bS = self._summary.bS
 
-        checkedSize = binaryunit.BinaryUnit(self.checkedSize, 'B')
+        checkedSize = self._summary.checkedSize
 
         LOGGER.info('Copied %d files (%d%s / %ds = %d%s) Checked %d files (%d%s)',
-                self.copiedFiles, round(copiedSize.value), copiedSize.unit,
-                copiedTime, round(bS.value), bS.unit, self.checkedFiles,
-                round(checkedSize.value), checkedSize.unit)
+                    self._summary.copiedFiles,
+                    copiedSize.value, copiedSize.unit, copiedTime,
+                    bS.value, bS.unit,
+                    self._summary.checkedFiles, checkedSize.value, checkedSize.unit)
 
 GDRsync(args).sync()
