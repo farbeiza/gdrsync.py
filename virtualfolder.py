@@ -5,15 +5,12 @@ import virtualfile
 
 class Factory(object):
     def fromUrls(self, urls):
-        return self.create([self.url2path(url) for url in urls])
-
-    def url2path(self, urlString):
-        raise NotImplementedError()
+        return self.create([self.folderFactory.pathFromUrl(url) for url in urls])
 
     def create(self, paths):
         virtualFolder = folder.Folder(virtualfile.VirtualFile(True))
         for path in paths:
-            (head, tail) = self.split(path)
+            (head, tail) = self.folderFactory.split(path)
             if tail == '':
                 pathFolder = self.folderFactory.create(head)
                 virtualFolder.addChildren(pathFolder.children.values())
@@ -22,9 +19,6 @@ class Factory(object):
                 virtualFolder.addChild(pathFile)
 
         return virtualFolder
-
-    def split(self, path):
-        raise NotImplementedError()
 
     @property
     def folderFactory(self):

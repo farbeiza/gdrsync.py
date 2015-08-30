@@ -7,6 +7,7 @@ import requestexecutor
 import utils
 
 import os
+import posixpath
 import urllib.parse
 
 SCHEME = 'gdrive'
@@ -48,12 +49,15 @@ class Factory(folder.Factory):
     def __init__(self, drive):
         self.drive = drive
 
-    def fromUrl(self, urlString):
+    def pathFromUrl(self, urlString):
         url = urllib.parse.urlparse(urlString)
         if url.scheme != SCHEME:
             raise RuntimeError('Invalid URL: URL is not a %s one: %s' % (SCHEME, urlString))
 
-        return self.create(url.path)
+        return url.path
+
+    def split(self, path):
+        return posixpath.split(path)
 
     def create(self, file):
         if not isinstance(file, remotefile.RemoteFile):

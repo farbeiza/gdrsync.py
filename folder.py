@@ -3,7 +3,7 @@
 import file
 import utils
 
-import os
+import os.path
 
 def empty(file):
     return Folder(file)
@@ -61,6 +61,12 @@ class Folder(object):
 
 class Factory(object):
     def fromUrl(self, url):
+        return self.create(self.pathFromUrl(url))
+
+    def pathFromUrl(self, url):
+        raise NotImplementedError()
+
+    def split(self, path):
         raise NotImplementedError()
 
     def create(self, path):
