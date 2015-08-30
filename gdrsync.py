@@ -75,18 +75,46 @@ class GDRsync(object):
     def __init__(self, args):
         self.args = args
 
-        self.exclude = []
-        if self.args.exclude is not None:
-            self.exclude = [re.compile(exclude) for exclude in self.args.exclude]
+        self.exclude = self._exclude(self.args.exclude)
 
         drive = driveutils.drive(self.args.saveCredentials)
 
-        self.sourceFolderFactory = localfolder.Factory()
-        self.destFolderFactory = remotefolder.Factory(drive)
+        self.sourceFolderFactory = self.folderFactoryFromUrls(self.args.sourceUrls, drive)
+        self.destFolderFactory = self.folderFactoryFromUrl(self.args.destUrl, drive)
 
         self.summary = summary.Summary()
 
-        self.transferManager = uploadmanager.UploadManager(drive, self.summary)
+        self.transferManager = self.createTransferManager(drive)
+
+    def _exclude(self, excludeRes):
+        if excludeRes is None:
+            return []
+
+        return [re.compile(exclude) for exclude in excludeRes]
+
+    def folderFactoryFromUrls(self, urls, drive):
+        for url in urls:
+            return self.folderFactoryFromUrl(url, drive)
+
+    def folderFactoryFromUrl(self, url, drive):
+        folderFactory = remotefolder.Factory(drive)
+        if folderFactory.handlesUrl(url):
+            return folderFactory
+
+        folderFactory = localfolder.Factory()
+        if folderFactory.handlesUrl(url):
+            return folderFactory
+
+        raise RuntimeError('Unknown URL type: %s' % url)
+
+    def createTransferManager(self, drive):
+        if self.sourceFolderFactory.isRemote() == self.destFolderFactory.isRemote():
+            raise RuntimeError('Cannot copy between a source and destination of the same type')
+
+        if self.destFolderFactory.isRemote():
+            return uploadmanager.UploadManager(drive, self.summary)
+
+        raise RuntimeError('Cannot handle download yet')
 
     def sync(self):
         LOGGER.info('Starting...')

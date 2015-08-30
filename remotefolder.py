@@ -49,12 +49,25 @@ class Factory(folder.Factory):
     def __init__(self, drive):
         self._drive = drive
 
-    def pathFromUrl(self, urlString):
+    def isRemote(self):
+        return True
+
+    def handlesUrl(self, url):
+        return self._pathFromUrl(url) is not None
+
+    def _pathFromUrl(self, urlString):
         url = urllib.parse.urlparse(urlString)
         if url.scheme != SCHEME:
-            raise RuntimeError('Invalid URL: URL is not a %s one: %s' % (SCHEME, urlString))
+            return None
 
         return url.path
+
+    def pathFromUrl(self, url):
+        path = self._pathFromUrl(url)
+        if path is None:
+            raise RuntimeError('Invalid URL: URL is not a %s one: %s' % (SCHEME, urlString))
+
+        return path
 
     def create(self, file):
         if not isinstance(file, remotefile.RemoteFile):

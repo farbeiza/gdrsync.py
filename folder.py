@@ -60,6 +60,12 @@ class Folder(object):
         return file.File(path, name, folder)
 
 class Factory(object):
+    def isRemote(self):
+        raise NotImplementedError()
+
+    def handlesUrl(self, url):
+        raise NotImplementedError()
+
     def fromUrl(self, url):
         return self.create(self.pathFromUrl(url))
 

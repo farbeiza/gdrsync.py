@@ -13,6 +13,12 @@ class LocalFolder(folder.Folder):
         return localfile.fromParent(self.file, name, folder)
 
 class Factory(folder.Factory):
+    def isRemote(self):
+        return False
+
+    def handlesUrl(self, url):
+        return True
+
     def pathFromUrl(self, urlString):
         url = urllib.parse.urlparse(urlString)
         if url.scheme != SCHEME:
