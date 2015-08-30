@@ -11,15 +11,15 @@ nativeTrailingMessage = ''
 if os.path.sep != '/':
     nativeTrailingMessage = ' (or %s, if a native path name)' % os.path.sep
 
-parser.add_argument('localUrls', nargs='+',
-        help = ('local URLs. URLs with the form file:///path or file://host/path'
+parser.add_argument('sourceUrls', nargs='+',
+        help = ('source URLs. URLs with the form file:///path or file://host/path'
                 ' or native path names.'
-                ' A trailing /%s means "copy the contents of this'
-                ' directory", as opposed to "copy the directory itself".'
+                ' A trailing /%s means "copy the contents of this directory",'
+                ' as opposed to "copy the directory itself".'
                 % nativeTrailingMessage),
-        metavar = 'LOCAL')
-parser.add_argument('remoteUrl', help = 'remote URL. A URL with the form gdrive:///path'
-                    ' or gdrive://host/path.', metavar = 'REMOTE')
+        metavar = 'SOURCE')
+parser.add_argument('destUrl', help = 'destination URL. A URL with the form gdrive:///path'
+                    ' or gdrive://host/path.', metavar = 'DEST')
 
 parser.add_argument('-c', action = 'store_true',
         help = 'skip based on checksum, not mod-time & size', dest = 'checksum')
@@ -81,8 +81,8 @@ class GDRsync(object):
 
         drive = driveutils.drive(self.args.saveCredentials)
 
-        self.localFolderFactory = localfolder.Factory()
-        self.remoteFolderFactory = remotefolder.Factory(drive)
+        self.sourceFolderFactory = localfolder.Factory()
+        self.destFolderFactory = remotefolder.Factory(drive)
 
         self.summary = summary.Summary()
 
@@ -91,273 +91,272 @@ class GDRsync(object):
     def sync(self):
         LOGGER.info('Starting...')
 
-        virtualLocalFolder = self.localFolderFactory.virtualFromUrls(self.args.localUrls)
-        remoteFolder = self.remoteFolderFactory.fromUrl(self.args.remoteUrl)
-        self._sync(virtualLocalFolder, remoteFolder)
+        virtualSourceFolder = self.sourceFolderFactory.virtualFromUrls(self.args.sourceUrls)
+        destFolder = self.destFolderFactory.fromUrl(self.args.destUrl)
+        self._sync(virtualSourceFolder, destFolder)
 
         self.logResult();
 
         LOGGER.info('End.')
 
-    def _sync(self, localFolder, remoteFolder):
-        remoteFolder = self.trash(localFolder, remoteFolder)
+    def _sync(self, sourceFolder, destFolder):
+        destFolder = self.trash(sourceFolder, destFolder)
 
-        self.summary.addTotalFiles(len(localFolder.children))
+        self.summary.addTotalFiles(len(sourceFolder.children))
 
-        remoteFolder = self.syncFolder(localFolder, remoteFolder)
+        destFolder = self.syncFolder(sourceFolder, destFolder)
 
         if not self.args.recursive:
             return
 
-        for localFile in localFolder.folders():
-            if self.isExcluded(localFile):
-                LOGGER.info('%s: Skipping excluded folder...', localFile.path)
+        for sourceFile in sourceFolder.folders():
+            if self.isExcluded(sourceFile):
+                LOGGER.info('%s: Skipping excluded folder...', sourceFile.path)
                 continue
 
-            if (not self.args.copyLinks) and localFile.link:
+            if (not self.args.copyLinks) and sourceFile.link:
                 continue
 
-            remoteFile = remoteFolder.children[localFile.name]
+            destFile = destFolder.children[sourceFile.name]
 
-            self._sync(self.createLocalFolder(localFile),
-                    self.createRemoteFolder(remoteFile))
+            self._sync(self.createSourceFolder(sourceFile),
+                    self.createDestFolder(destFile))
 
-    def trash(self, localFolder, remoteFolder):
-        remoteFolder = self.trashDuplicate(localFolder, remoteFolder)
-        remoteFolder = self.trashExtraneous(localFolder, remoteFolder)
-        remoteFolder = self.trashDifferentType(localFolder, remoteFolder)
-        remoteFolder = self.trashExcluded(localFolder, remoteFolder)
+    def trash(self, sourceFolder, destFolder):
+        destFolder = self.trashDuplicate(sourceFolder, destFolder)
+        destFolder = self.trashExtraneous(sourceFolder, destFolder)
+        destFolder = self.trashDifferentType(sourceFolder, destFolder)
+        destFolder = self.trashExcluded(sourceFolder, destFolder)
 
-        return remoteFolder
+        return destFolder
 
-    def trashDuplicate(self, localFolder, remoteFolder):
+    def trashDuplicate(self, sourceFolder, destFolder):
         if not self.args.delete:
-            return remoteFolder
+            return destFolder
 
-        for remoteFile in remoteFolder.duplicate:
-            LOGGER.debug('%s: Duplicate file.', remoteFile.path)
+        for destFile in destFolder.duplicate:
+            LOGGER.debug('%s: Duplicate file.', destFile.path)
 
-            remoteFile = self.trashFile(remoteFile)
+            destFile = self.trashFile(destFile)
 
-        return remoteFolder.withoutDuplicate()
+        return destFolder.withoutDuplicate()
 
-    def trashFile(self, remoteFile):
-        LOGGER.info('%s: Trashing file...', remoteFile.path)
+    def trashFile(self, destFile):
+        LOGGER.info('%s: Trashing file...', destFile.path)
         if self.args.dryRun:
-            return remoteFile
+            return destFile
 
-        return self.transferManager.remove(remoteFile)
+        return self.transferManager.remove(destFile)
 
-    def trashExtraneous(self, localFolder, remoteFolder):
+    def trashExtraneous(self, sourceFolder, destFolder):
         if not self.args.delete:
-            return remoteFolder
+            return destFolder
 
-        output = remoteFolder.withoutChildren()
-        for remoteFile in remoteFolder.children.values():
-            if remoteFile.name in localFolder.children:
-                output.addChild(remoteFile)
+        output = destFolder.withoutChildren()
+        for destFile in destFolder.children.values():
+            if destFile.name in sourceFolder.children:
+                output.addChild(destFile)
                 continue
 
-            LOGGER.debug('%s: Extraneous file.', remoteFile.path)
+            LOGGER.debug('%s: Extraneous file.', destFile.path)
 
-            remoteFile = self.trashFile(remoteFile)
+            destFile = self.trashFile(destFile)
 
         return output
 
-    def trashDifferentType(self, localFolder, remoteFolder):
+    def trashDifferentType(self, sourceFolder, destFolder):
         if not self.args.delete:
-            return remoteFolder
+            return destFolder
 
-        output = remoteFolder.withoutChildren()
-        for remoteFile in remoteFolder.children.values():
-            localFile = localFolder.children[remoteFile.name]
-            if localFile.folder == remoteFile.folder:
-                output.addChild(remoteFile)
+        output = destFolder.withoutChildren()
+        for destFile in destFolder.children.values():
+            sourceFile = sourceFolder.children[destFile.name]
+            if sourceFile.folder == destFile.folder:
+                output.addChild(destFile)
                 continue
 
-            LOGGER.debug('%s: Different type: %s != %s.', remoteFile.path,
-                    localFile.folder, remoteFile.folder)
+            LOGGER.debug('%s: Different type: %s != %s.', destFile.path,
+                    sourceFile.folder, destFile.folder)
 
-            remoteFile = self.trashFile(remoteFile)
+            destFile = self.trashFile(destFile)
 
         return output
 
-    def trashExcluded(self, localFolder, remoteFolder):
+    def trashExcluded(self, sourceFolder, destFolder):
         if not self.args.deleteExcluded:
-            return remoteFolder
+            return destFolder
 
-        output = remoteFolder.withoutChildren()
-        for remoteFile in remoteFolder.children.values():
-            localFile = localFolder.children[remoteFile.name]
-            if not self.isExcluded(localFile):
-                output.addChild(remoteFile)
+        output = destFolder.withoutChildren()
+        for destFile in destFolder.children.values():
+            sourceFile = sourceFolder.children[destFile.name]
+            if not self.isExcluded(sourceFile):
+                output.addChild(destFile)
                 continue
 
-            LOGGER.debug('%s: Excluded file.', remoteFile.path)
+            LOGGER.debug('%s: Excluded file.', destFile.path)
 
-            remoteFile = self.trashFile(remoteFile)
+            destFile = self.trashFile(destFile)
 
         return output
 
-    def isExcluded(self, localFile):
-        if localFile.path is None:
+    def isExcluded(self, sourceFile):
+        if sourceFile.path is None:
             return False
 
-        return any(re.match(localFile.path) for re in self.exclude)
+        return any(re.match(sourceFile.path) for re in self.exclude)
 
-    def syncFolder(self, localFolder, remoteFolder):
-        output = (remoteFolder.withoutChildren()
-                .addChildren(remoteFolder.children.values()))
-        for localFile in localFolder.children.values():
+    def syncFolder(self, sourceFolder, destFolder):
+        output = (destFolder.withoutChildren()
+                .addChildren(destFolder.children.values()))
+        for sourceFile in sourceFolder.children.values():
             self.summary.addCheckedFiles(1)
-            self.summary.addCheckedSize(localFile.size)
+            self.summary.addCheckedSize(sourceFile.size)
 
             try:
-                remoteFile = self.copy(localFile, remoteFolder)
-                if remoteFile is None:
+                destFile = self.copy(sourceFile, destFolder)
+                if destFile is None:
                     continue
 
-                output.addChild(remoteFile)
+                output.addChild(destFile)
             except OSError as error:
                 if error.errno != errno.ENOENT:
                     raise
 
-                LOGGER.warn('%s: No such file or directory.', localFile.path)
+                LOGGER.warn('%s: No such file or directory.', sourceFile.path)
 
         return output
 
-    def copy(self, localFile, remoteFolder):
-        remoteFile = remoteFolder.children.get(localFile.name)
+    def copy(self, sourceFile, destFolder):
+        destFile = destFolder.children.get(sourceFile.name)
 
-        fileOperation = self.fileOperation(localFile, remoteFile)
+        fileOperation = self.fileOperation(sourceFile, destFile)
         if fileOperation is None:
             return None
 
-        if remoteFile is None:
-            remoteFile = remoteFolder.createFile(localFile.name,
-                    localFile.folder)
+        if destFile is None:
+            destFile = destFolder.createFile(sourceFile.name, sourceFile.folder)
 
-        return fileOperation(localFile, remoteFile)
+        return fileOperation(sourceFile, destFile)
 
-    def fileOperation(self, localFile, remoteFile):
-        if self.isExcluded(localFile):
+    def fileOperation(self, sourceFile, destFile):
+        if self.isExcluded(sourceFile):
             LOGGER.info('%s: Skipping excluded file... (Checked %d/%d files)',
-                    localFile.path, self.summary.checkedFiles, self.summary.totalFiles)
+                    sourceFile.path, self.summary.checkedFiles, self.summary.totalFiles)
 
             return None
 
-        if (not self.args.copyLinks) and localFile.link:
+        if (not self.args.copyLinks) and sourceFile.link:
             LOGGER.info('%s: Skipping non-regular file... (Checked %d/%d files)',
-                    localFile.path, self.summary.checkedFiles, self.summary.totalFiles)
+                    sourceFile.path, self.summary.checkedFiles, self.summary.totalFiles)
 
             return None
 
-        if remoteFile is None:
-            if localFile.folder:
+        if destFile is None:
+            if sourceFile.folder:
                 return self.insertFolder
 
             return self.insertFile
 
-        if self.args.update and (remoteFile.modified > localFile.modified):
+        if self.args.update and (destFile.modified > sourceFile.modified):
             LOGGER.debug('%s: Newer destination file: %s < %s.',
-                    remoteFile.path, localFile.modified, remoteFile.modified)
+                    destFile.path, sourceFile.modified, destFile.modified)
         elif self.args.checksum:
-            fileOperation = self.checkChecksum(localFile, remoteFile)
+            fileOperation = self.checkChecksum(sourceFile, destFile)
             if fileOperation is not None:
                 return fileOperation
 
-            fileOperation = self.checkSize(localFile, remoteFile)
+            fileOperation = self.checkSize(sourceFile, destFile)
             if fileOperation is not None:
                 return fileOperation
 
-            fileOperation = self.checkModified(localFile, remoteFile)
+            fileOperation = self.checkModified(sourceFile, destFile)
             if fileOperation is not None:
                 return fileOperation
         else:
-            fileOperation = self.checkSize(localFile, remoteFile)
+            fileOperation = self.checkSize(sourceFile, destFile)
             if fileOperation is not None:
                 return fileOperation
 
-            fileOperation = self.checkModified(localFile, remoteFile)
+            fileOperation = self.checkModified(sourceFile, destFile)
             if fileOperation is not None:
                 return fileOperation
 
-        LOGGER.debug('%s: Up to date. (Checked %d/%d files)', remoteFile.path,
+        LOGGER.debug('%s: Up to date. (Checked %d/%d files)', destFile.path,
                 self.summary.checkedFiles, self.summary.totalFiles)
 
         return None
 
-    def checkChecksum(self, localFile, remoteFile):
-        if remoteFile.md5 == localFile.md5:
+    def checkChecksum(self, sourceFile, destFile):
+        if destFile.md5 == sourceFile.md5:
             return None
 
-        LOGGER.debug('%s: Different checksum: %s != %s.', remoteFile.path,
-                localFile.md5, remoteFile.md5)
+        LOGGER.debug('%s: Different checksum: %s != %s.', destFile.path,
+                sourceFile.md5, destFile.md5)
 
         return self.updateFile
 
-    def checkSize(self, localFile, remoteFile):
-        if remoteFile.size == localFile.size:
+    def checkSize(self, sourceFile, destFile):
+        if destFile.size == sourceFile.size:
             return None
 
-        LOGGER.debug('%s: Different size: %d != %d.', remoteFile.path,
-                localFile.size, remoteFile.size)
+        LOGGER.debug('%s: Different size: %d != %d.', destFile.path,
+                sourceFile.size, destFile.size)
 
         return self.updateFile
 
-    def checkModified(self, localFile, remoteFile):
-        if remoteFile.modified == localFile.modified:
+    def checkModified(self, sourceFile, destFile):
+        if destFile.modified == sourceFile.modified:
             return None
 
-        fileOperation = self.checkChecksum(localFile, remoteFile)
+        fileOperation = self.checkChecksum(sourceFile, destFile)
         if fileOperation is not None:
             return fileOperation
 
-        LOGGER.debug('%s: Different modified time: %s != %s.', remoteFile.path,
-                localFile.modified, remoteFile.modified)
+        LOGGER.debug('%s: Different modified time: %s != %s.', destFile.path,
+                sourceFile.modified, destFile.modified)
 
         return self.touch
 
-    def insertFolder(self, localFile, remoteFile):
+    def insertFolder(self, sourceFile, destFile):
         LOGGER.info('%s: Inserting folder... (Checked %d/%d files)',
-                remoteFile.path, self.summary.checkedFiles, self.summary.totalFiles)
+                destFile.path, self.summary.checkedFiles, self.summary.totalFiles)
         if self.args.dryRun:
-            return remoteFile
+            return destFile
 
-        return self.transferManager.insertFolder(localFile, remoteFile)
+        return self.transferManager.insertFolder(sourceFile, destFile)
 
-    def insertFile(self, localFile, remoteFile):
+    def insertFile(self, sourceFile, destFile):
         LOGGER.info('%s: Inserting file... (Checked %d/%d files)',
-                remoteFile.path, self.summary.checkedFiles, self.summary.totalFiles)
+                destFile.path, self.summary.checkedFiles, self.summary.totalFiles)
         if self.args.dryRun:
-            return remoteFile
+            return destFile
 
-        return self.transferManager.insertFile(localFile, remoteFile)
+        return self.transferManager.insertFile(sourceFile, destFile)
 
-    def updateFile(self, localFile, remoteFile):
+    def updateFile(self, sourceFile, destFile):
         LOGGER.info('%s: Updating file... (Checked %d/%d files)',
-                remoteFile.path, self.summary.checkedFiles, self.summary.totalFiles)
+                destFile.path, self.summary.checkedFiles, self.summary.totalFiles)
         if self.args.dryRun:
-            return remoteFile
+            return destFile
 
-        return self.transferManager.updateFile(localFile, remoteFile)
+        return self.transferManager.updateFile(sourceFile, destFile)
 
-    def touch(self, localFile, remoteFile):
+    def touch(self, sourceFile, destFile):
         LOGGER.info('%s: Updating modified date... (Checked %d/%d files)',
-                remoteFile.path, self.summary.checkedFiles, self.summary.totalFiles)
+                destFile.path, self.summary.checkedFiles, self.summary.totalFiles)
         if self.args.dryRun:
-            return remoteFile
+            return destFile
 
-        return self.transferManager.touch(localFile, remoteFile)
+        return self.transferManager.touch(sourceFile, destFile)
 
-    def createLocalFolder(self, localFile):
-        return self.localFolderFactory.create(localFile)
+    def createSourceFolder(self, sourceFile):
+        return self.sourceFolderFactory.create(sourceFile)
 
-    def createRemoteFolder(self, remoteFile):
-        if self.args.dryRun and (not remoteFile.exists):
-            return folder.empty(remoteFile)
+    def createDestFolder(self, destFile):
+        if self.args.dryRun and (not destFile.exists):
+            return folder.empty(destFile)
 
-        return self.remoteFolderFactory.create(remoteFile)
+        return self.destFolderFactory.create(destFile)
 
     def logResult(self):
         copiedSize = self.summary.copiedSize
