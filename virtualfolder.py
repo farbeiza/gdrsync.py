@@ -3,9 +3,13 @@
 import folder
 import virtualfile
 
-import os
-
 class Factory(object):
+    def fromUrls(self, urls):
+        return self.create([self.url2path(url) for url in urls])
+
+    def url2path(self, urlString):
+        raise NotImplementedError()
+
     def create(self, paths):
         virtualFolder = folder.Folder(virtualfile.VirtualFile(True))
         for path in paths:

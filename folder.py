@@ -58,3 +58,10 @@ class Folder(object):
         path = os.path.join(self._file.path, name)
 
         return file.File(path, name, folder)
+
+class Factory(object):
+    def fromUrl(self, url):
+        raise NotImplementedError()
+
+    def create(self, path):
+        raise NotImplementedError()

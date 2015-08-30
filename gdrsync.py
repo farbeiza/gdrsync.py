@@ -2,17 +2,24 @@
 # -*- coding: utf-8 -*-
 
 import argparse
-import os
+import os.path
 
 parser = argparse.ArgumentParser(description = 'Copy files from a local system'
         ' to a Google drive repository.')
 
-parser.add_argument('localPaths', nargs='+',
-        help = ('local paths. A trailing %s means "copy the contents of this'
-                ' directory", as opposed to "copy the directory itself"'
-                % os.path.sep),
+nativeTrailingMessage = ''
+if os.path.sep != '/':
+    nativeTrailingMessage = ' (or %s, if a native path name)' % os.path.sep
+
+parser.add_argument('localUrls', nargs='+',
+        help = ('local URLs. URLs with the form file:///path or file://host/path'
+                ' or native path names.'
+                ' A trailing /%s means "copy the contents of this'
+                ' directory", as opposed to "copy the directory itself".'
+                % nativeTrailingMessage),
         metavar = 'LOCAL')
-parser.add_argument('remotePath', help = 'remote path', metavar = 'REMOTE')
+parser.add_argument('remoteUrl', help = 'remote URL. A URL with the form gdrive:///path'
+                    ' or gdrive://host/path.', metavar = 'REMOTE')
 
 parser.add_argument('-c', action = 'store_true',
         help = 'skip based on checksum, not mod-time & size', dest = 'checksum')
@@ -85,8 +92,8 @@ class GDRsync(object):
     def sync(self):
         LOGGER.info('Starting...')
 
-        virtualLocalFolder = virtuallocalfolder.Factory().create(self.args.localPaths)
-        remoteFolder = self.remoteFolderFactory.create(self.args.remotePath)
+        virtualLocalFolder = virtuallocalfolder.Factory().fromUrls(self.args.localUrls)
+        remoteFolder = self.remoteFolderFactory.fromUrl(self.args.remoteUrl)
         self._sync(virtualLocalFolder, remoteFolder)
 
         self.logResult();

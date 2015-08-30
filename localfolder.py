@@ -9,7 +9,7 @@ class LocalFolder(folder.Folder):
     def createFile(self, name, folder = None):
         return localfile.fromParent(self.file, name, folder)
 
-class Factory(object):
+class Factory(folder.Factory):
     def create(self, file):
         if not isinstance(file, localfile.LocalFile):
             localFileFactory = localfile.Factory()

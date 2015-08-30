@@ -7,6 +7,9 @@ import requestexecutor
 import utils
 
 import os
+import urllib.parse
+
+SCHEME = 'gdrive'
 
 CHILDREN_QUERY = '(\'%(parents)s\' in parents) and (not trashed)'
 CHILDREN_FIELDS = 'nextPageToken, items(%s)' % driveutils.FIELDS
@@ -41,9 +44,16 @@ class RemoteFolder(folder.Folder):
     def createFolder(self, name):
         return self.createFile(name, remotefile.MIME_FOLDER)
 
-class Factory(object):
+class Factory(folder.Factory):
     def __init__(self, drive):
         self.drive = drive
+
+    def fromUrl(self, urlString):
+        url = urllib.parse.urlparse(urlString)
+        if url.scheme != SCHEME:
+            raise RuntimeError('Invalid URL: URL is not a %s one: %s' % (SCHEME, urlString))
+
+        return self.create(url.path)
 
     def create(self, file):
         if not isinstance(file, remotefile.RemoteFile):
