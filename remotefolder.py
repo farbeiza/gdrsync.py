@@ -47,7 +47,7 @@ class RemoteFolder(folder.Folder):
 
 class Factory(folder.Factory):
     def __init__(self, drive):
-        self.drive = drive
+        self._drive = drive
 
     def pathFromUrl(self, urlString):
         url = urllib.parse.urlparse(urlString)
@@ -56,12 +56,9 @@ class Factory(folder.Factory):
 
         return url.path
 
-    def split(self, path):
-        return posixpath.split(path)
-
     def create(self, file):
         if not isinstance(file, remotefile.RemoteFile):
-            remoteFileFactory = remotefile.Factory(self.drive)
+            remoteFileFactory = remotefile.Factory(self._drive)
 
             return self.create(remoteFileFactory.create(file))
 
@@ -71,7 +68,7 @@ class Factory(folder.Factory):
 
             pageToken = None
             while True:
-                list = (self.drive.files().list(q = query,
+                list = (self._drive.files().list(q = query,
                         fields = CHILDREN_FIELDS, pageToken = pageToken,
                         maxResults = LIST_MAX_RESULTS))
 
@@ -86,3 +83,10 @@ class Factory(folder.Factory):
             return remoteFolder
 
         return requestexecutor.execute(request)
+
+    def split(self, path):
+        return posixpath.split(path)
+
+    @property
+    def fileFactory(self):
+        return remotefile.Factory(self._drive)

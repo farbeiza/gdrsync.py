@@ -20,9 +20,6 @@ class Factory(folder.Factory):
 
         return url.path
 
-    def split(self, path):
-        return os.path.split(path)
-
     def create(self, file):
         if not isinstance(file, localfile.LocalFile):
             localFileFactory = localfile.Factory()
@@ -35,3 +32,10 @@ class Factory(folder.Factory):
             localFolder.addChild(localFile)
 
         return localFolder
+
+    def split(self, path):
+        return os.path.split(path)
+
+    @property
+    def fileFactory(self):
+        return localfile.Factory()

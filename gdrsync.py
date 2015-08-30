@@ -65,7 +65,6 @@ import localfolder
 import remotefolder
 import summary
 import uploadmanager
-import virtuallocalfolder
 
 import errno
 import re
@@ -85,14 +84,14 @@ class GDRsync(object):
         self.localFolderFactory = localfolder.Factory()
         self.remoteFolderFactory = remotefolder.Factory(drive)
 
-        self._summary = summary.Summary()
+        self.summary = summary.Summary()
 
-        self.transferManager = uploadmanager.UploadManager(drive, self._summary)
+        self.transferManager = uploadmanager.UploadManager(drive, self.summary)
 
     def sync(self):
         LOGGER.info('Starting...')
 
-        virtualLocalFolder = virtuallocalfolder.Factory().fromUrls(self.args.localUrls)
+        virtualLocalFolder = self.localFolderFactory.virtualFromUrls(self.args.localUrls)
         remoteFolder = self.remoteFolderFactory.fromUrl(self.args.remoteUrl)
         self._sync(virtualLocalFolder, remoteFolder)
 
@@ -103,7 +102,7 @@ class GDRsync(object):
     def _sync(self, localFolder, remoteFolder):
         remoteFolder = self.trash(localFolder, remoteFolder)
 
-        self._summary.addTotalFiles(len(localFolder.children))
+        self.summary.addTotalFiles(len(localFolder.children))
 
         remoteFolder = self.syncFolder(localFolder, remoteFolder)
 
@@ -210,8 +209,8 @@ class GDRsync(object):
         output = (remoteFolder.withoutChildren()
                 .addChildren(remoteFolder.children.values()))
         for localFile in localFolder.children.values():
-            self._summary.addCheckedFiles(1)
-            self._summary.addCheckedSize(localFile.size)
+            self.summary.addCheckedFiles(1)
+            self.summary.addCheckedSize(localFile.size)
 
             try:
                 remoteFile = self.copy(localFile, remoteFolder)
@@ -243,13 +242,13 @@ class GDRsync(object):
     def fileOperation(self, localFile, remoteFile):
         if self.isExcluded(localFile):
             LOGGER.info('%s: Skipping excluded file... (Checked %d/%d files)',
-                    localFile.path, self._summary.checkedFiles, self._summary.totalFiles)
+                    localFile.path, self.summary.checkedFiles, self.summary.totalFiles)
 
             return None
 
         if (not self.args.copyLinks) and localFile.link:
             LOGGER.info('%s: Skipping non-regular file... (Checked %d/%d files)',
-                    localFile.path, self._summary.checkedFiles, self._summary.totalFiles)
+                    localFile.path, self.summary.checkedFiles, self.summary.totalFiles)
 
             return None
 
@@ -284,7 +283,7 @@ class GDRsync(object):
                 return fileOperation
 
         LOGGER.debug('%s: Up to date. (Checked %d/%d files)', remoteFile.path,
-                self._summary.checkedFiles, self._summary.totalFiles)
+                self.summary.checkedFiles, self.summary.totalFiles)
 
         return None
 
@@ -321,7 +320,7 @@ class GDRsync(object):
 
     def insertFolder(self, localFile, remoteFile):
         LOGGER.info('%s: Inserting folder... (Checked %d/%d files)',
-                remoteFile.path, self._summary.checkedFiles, self._summary.totalFiles)
+                remoteFile.path, self.summary.checkedFiles, self.summary.totalFiles)
         if self.args.dryRun:
             return remoteFile
 
@@ -329,7 +328,7 @@ class GDRsync(object):
 
     def insertFile(self, localFile, remoteFile):
         LOGGER.info('%s: Inserting file... (Checked %d/%d files)',
-                remoteFile.path, self._summary.checkedFiles, self._summary.totalFiles)
+                remoteFile.path, self.summary.checkedFiles, self.summary.totalFiles)
         if self.args.dryRun:
             return remoteFile
 
@@ -337,7 +336,7 @@ class GDRsync(object):
 
     def updateFile(self, localFile, remoteFile):
         LOGGER.info('%s: Updating file... (Checked %d/%d files)',
-                remoteFile.path, self._summary.checkedFiles, self._summary.totalFiles)
+                remoteFile.path, self.summary.checkedFiles, self.summary.totalFiles)
         if self.args.dryRun:
             return remoteFile
 
@@ -345,7 +344,7 @@ class GDRsync(object):
 
     def touch(self, localFile, remoteFile):
         LOGGER.info('%s: Updating modified date... (Checked %d/%d files)',
-                remoteFile.path, self._summary.checkedFiles, self._summary.totalFiles)
+                remoteFile.path, self.summary.checkedFiles, self.summary.totalFiles)
         if self.args.dryRun:
             return remoteFile
 
@@ -361,16 +360,16 @@ class GDRsync(object):
         return self.remoteFolderFactory.create(remoteFile)
 
     def logResult(self):
-        copiedSize = self._summary.copiedSize
-        copiedTime = round(self._summary.copiedTime)
-        bS = self._summary.bS
+        copiedSize = self.summary.copiedSize
+        copiedTime = round(self.summary.copiedTime)
+        bS = self.summary.bS
 
-        checkedSize = self._summary.checkedSize
+        checkedSize = self.summary.checkedSize
 
         LOGGER.info('Copied %d files (%d%s / %ds = %d%s) Checked %d files (%d%s)',
-                    self._summary.copiedFiles,
+                    self.summary.copiedFiles,
                     copiedSize.value, copiedSize.unit, copiedTime,
                     bS.value, bS.unit,
-                    self._summary.checkedFiles, checkedSize.value, checkedSize.unit)
+                    self.summary.checkedFiles, checkedSize.value, checkedSize.unit)
 
 GDRsync(args).sync()

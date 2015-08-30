@@ -66,8 +66,28 @@ class Factory(object):
     def pathFromUrl(self, url):
         raise NotImplementedError()
 
+    def create(self, path):
+        raise NotImplementedError()
+
+    def virtualFromUrls(self, urls):
+        return self.virtual([self.pathFromUrl(url) for url in urls])
+
+    def virtual(self, paths):
+        virtualFolder = Folder(file.VirtualFile(True))
+        for path in paths:
+            (head, tail) = self.split(path)
+            if tail == '':
+                pathFolder = self.create(head)
+                virtualFolder.addChildren(pathFolder.children.values())
+            else:
+                pathFile = self.fileFactory.create(path)
+                virtualFolder.addChild(pathFile)
+
+        return virtualFolder
+
     def split(self, path):
         raise NotImplementedError()
 
-    def create(self, path):
+    @property
+    def fileFactory(self):
         raise NotImplementedError()
