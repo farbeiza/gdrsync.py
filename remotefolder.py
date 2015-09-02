@@ -1,6 +1,7 @@
 #!/usr/bin/python
 
 import driveutils
+import file
 import folder
 import remotefile
 import requestexecutor
@@ -19,9 +20,6 @@ CHILDREN_FIELDS = 'nextPageToken, items(%s)' % driveutils.FIELDS
 LIST_MAX_RESULTS = 1000
 
 class RemoteFolder(folder.Folder):
-    def __init__(self, file, children = None, duplicate = None):
-        super(RemoteFolder, self).__init__(file, children, duplicate)
-
     def withoutChildren(self):
         return RemoteFolder(self._file)
 
@@ -38,7 +36,7 @@ class RemoteFolder(folder.Folder):
         else:
             file['mimeType'] = mimeType
 
-        file['parents'] = [{'id': self.file.delegate['id']}]
+        file['parents'] = [{'id': self.file.delegate.get('id')}]
 
         return remotefile.fromParent(self.file, file)
 
@@ -61,6 +59,9 @@ class Factory(folder.Factory):
             return None
 
         return url.path
+
+    def empty(self, file):
+        return RemoteFolder(file)
 
     def pathFromUrl(self, url):
         path = self._pathFromUrl(url)
@@ -96,6 +97,9 @@ class Factory(folder.Factory):
             return remoteFolder
 
         return requestexecutor.execute(request)
+
+    def virtual(self):
+        return self.empty(file.File(None, None))
 
     def split(self, path):
         return posixpath.split(path)

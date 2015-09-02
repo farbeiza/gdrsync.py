@@ -59,6 +59,7 @@ if args.verbosity < len(LOG_LEVELS):
     logging.getLogger('oauth2client.client').setLevel(logging.ERROR)
 
 import binaryunit
+import downloadmanager
 import driveutils
 import folder
 import localfolder
@@ -114,7 +115,7 @@ class GDRsync(object):
         if self.destFolderFactory.isRemote():
             return uploadmanager.UploadManager(drive, self.summary)
 
-        raise RuntimeError('Cannot handle download yet')
+        return downloadmanager.DownloadManager(drive, self.summary)
 
     def sync(self):
         LOGGER.info('Starting...')
@@ -381,8 +382,8 @@ class GDRsync(object):
         return self.sourceFolderFactory.create(sourceFile)
 
     def createDestFolder(self, destFile):
-        if self.args.dryRun and (not destFile.exists):
-            return folder.empty(destFile)
+        if not destFile.exists:
+            return self.destFolderFactory.empty(destFile)
 
         return self.destFolderFactory.create(destFile)
 

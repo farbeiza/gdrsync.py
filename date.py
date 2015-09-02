@@ -34,6 +34,10 @@ class Date(object):
     def __init__(self, seconds):
         self._seconds = round(seconds, SCALE)
 
+    @property
+    def seconds(self):
+        return self._seconds
+
     def __eq__(self, other):
         return self._seconds == other._seconds
 

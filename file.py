@@ -51,6 +51,6 @@ class File(object):
     def exists(self):
         return False
 
-class VirtualFile(File):
-    def __init__(self, folder = None):
-        super(VirtualFile, self).__init__(None, None, folder)
+    @property
+    def link(self):
+        return False

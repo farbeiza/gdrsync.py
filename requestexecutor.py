@@ -14,8 +14,7 @@ def execute(request):
             return request()
         except:
             wait = exponentialBackoffWait(retry)
-            LOGGER.exception('Retry %d failed. Retrying after %f s...', retry,
-                    wait)
+            LOGGER.exception('Retry %d failed. Retrying after %f s...', retry, wait)
 
             time.sleep(wait)
 

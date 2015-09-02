@@ -1,12 +1,6 @@
 #!/usr/bin/python
 
-import file
 import utils
-
-import os.path
-
-def empty(file):
-    return Folder(file)
 
 class Folder(object):
     def __init__(self, file, children = None, duplicate = None):
@@ -49,21 +43,22 @@ class Folder(object):
         return [child for child in self._children.values() if child.folder]
 
     def withoutChildren(self):
-        return Folder(self._file)
+        raise NotImplementedError()
 
     def withoutDuplicate(self):
-        return Folder(self._file, self._children)
+        raise NotImplementedError()
 
     def createFile(self, name, folder = None):
-        path = os.path.join(self._file.path, name)
-
-        return file.File(path, name, folder)
+        raise NotImplementedError()
 
 class Factory(object):
     def isRemote(self):
         raise NotImplementedError()
 
     def handlesUrl(self, url):
+        raise NotImplementedError()
+
+    def empty(self, file):
         raise NotImplementedError()
 
     def fromUrl(self, url):
@@ -76,10 +71,10 @@ class Factory(object):
         raise NotImplementedError()
 
     def virtualFromUrls(self, urls):
-        return self.virtual([self.pathFromUrl(url) for url in urls])
+        return self.virtualFromPaths([self.pathFromUrl(url) for url in urls])
 
-    def virtual(self, paths):
-        virtualFolder = Folder(file.VirtualFile(True))
+    def virtualFromPaths(self, paths):
+        virtualFolder = self.virtual()
         for path in paths:
             (head, tail) = self.split(path)
             if tail == '':
@@ -90,6 +85,9 @@ class Factory(object):
                 virtualFolder.addChild(pathFile)
 
         return virtualFolder
+
+    def virtual(self):
+        raise NotImplementedError()
 
     def split(self, path):
         raise NotImplementedError()

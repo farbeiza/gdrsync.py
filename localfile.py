@@ -5,7 +5,7 @@ import utils
 
 import date
 import hashlib
-import os
+import os.path
 
 MD5_BUFFER_SIZE = 16 * utils.KIB
 
@@ -61,6 +61,9 @@ class LocalFile(file.File):
     @property
     def link(self):
         return os.path.islink(self.path)
+
+    def copy(self):
+        return LocalFile(self.path)
 
 class Factory(object):
     def create(self, path):
