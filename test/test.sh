@@ -10,6 +10,6 @@ GDRSYNC="${DIR}/../gdrsync.py"
 
 "${GDRSYNC}" -vv -r -n "${DIR}/local/" gdrive://drive.google.com/test
 
-"${GDRSYNC}" -vv -u -e ".*/excluded.*" "${DIR_URL}/local/" gdrive:///test
+"${GDRSYNC}" -vv -u --exclude ".*/excluded.*" "${DIR_URL}/local/" gdrive:///test
 
-"${GDRSYNC}" -vv -dDLr -e ".*/excluded.*" -e ".*/deleteExcluded.*" "${DIR}/local/" gdrive://drive.google.com/test
+"${GDRSYNC}" -vv -Lr --delete --delete-excluded --exclude=".*/excluded.*" --exclude=".*/deleteExcluded.*" "${DIR}/local/" gdrive://drive.google.com/test

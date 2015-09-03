@@ -4,45 +4,45 @@
 import argparse
 import os.path
 
-parser = argparse.ArgumentParser(description = 'Copy files from a local system'
-        ' to a Google drive repository.')
+parser = argparse.ArgumentParser(description = 'Copy files between a local system'
+                                 ' and a Google drive repository.',
+                                 epilog = 'Local URLs: URLs with the form file:///path'
+                                 ' or file://host/path or native path names.'
+                                 ' Remote URLs: A URL with the form gdrive:///path'
+                                 ' or gdrive://host/path.')
 
 nativeTrailingMessage = ''
 if os.path.sep != '/':
-    nativeTrailingMessage = ' (or %s, if a native path name)' % os.path.sep
+    nativeTrailingMessage = ' (or %s, if a local native path name)' % os.path.sep
 
 parser.add_argument('sourceUrls', nargs='+',
-        help = ('source URLs. URLs with the form file:///path or file://host/path'
-                ' or native path names.'
+        help = ('source URLs.'
                 ' A trailing /%s means "copy the contents of this directory",'
                 ' as opposed to "copy the directory itself".'
                 % nativeTrailingMessage),
         metavar = 'SOURCE')
-parser.add_argument('destUrl', help = 'destination URL. A URL with the form gdrive:///path'
-                    ' or gdrive://host/path.', metavar = 'DEST')
+parser.add_argument('destUrl', help = 'destination URL', metavar = 'DEST')
 
-parser.add_argument('-c', action = 'store_true',
-        help = 'skip based on checksum, not mod-time & size', dest = 'checksum')
-parser.add_argument('-d', action = 'store_true',
-        help = 'delete duplicate and extraneous files from dest dirs',
-        dest = 'delete')
-parser.add_argument('-D', action = 'store_true',
+parser.add_argument('-c', '--checksum', action = 'store_true',
+        help = 'skip based on checksum, not mod-time & size')
+parser.add_argument('--delete', action = 'store_true',
+        help = 'delete duplicate and extraneous files from dest dirs')
+parser.add_argument('--delete-excluded', action = 'store_true',
         help = 'also delete excluded files from dest dirs',
         dest = 'deleteExcluded')
-parser.add_argument('-e', action = 'append',
-        help = 'exclude files matching PATTERN', metavar = 'PATTERN',
-        dest = 'exclude')
-parser.add_argument('-L', action = 'store_true',
+parser.add_argument('--exclude', action = 'append',
+        help = 'exclude files matching PATTERN', metavar = 'PATTERN')
+parser.add_argument('-L', '--copy-links', action = 'store_true',
         help = 'transform symlink into referent file/dir', dest = 'copyLinks')
-parser.add_argument('-n', action = 'store_true',
+parser.add_argument('-n', '--dry-run', action = 'store_true',
         help = 'perform a trial run with no changes made', dest = 'dryRun')
-parser.add_argument('-r', action = 'store_true',
-        help = 'recurse into directories', dest = 'recursive')
-parser.add_argument('-s', action = 'store_true',
+parser.add_argument('-r', '--recursive', action = 'store_true',
+        help = 'recurse into directories')
+parser.add_argument('-S', '--save-credentials', action = 'store_true',
         help = 'save credentials for future re-use', dest = 'saveCredentials')
-parser.add_argument('-u', action = 'store_true',
-        help = 'skip files that are newer on the receiver', dest = 'update')
-parser.add_argument('-v', action='count', default = 0,
+parser.add_argument('-u', '--update', action = 'store_true',
+        help = 'skip files that are newer on the receiver')
+parser.add_argument('-v', '--verbose', action='count', default = 0,
         help = 'increase verbosity', dest = 'verbosity')
 
 args = parser.parse_args()

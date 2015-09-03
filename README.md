@@ -1,6 +1,6 @@
 # gdrsync.py
 
-Simple rsync utility for Google Drive (for uploading only).
+Simple rsync utility for Google Drive.
 
 ## Prerequisites
 
@@ -57,4 +57,4 @@ To do so, sign up into
 Token for user authentication.
 
 Gdrsync.py will write this option if called using the command line argument
-`-s`.
+`-S`.
