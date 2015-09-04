@@ -1,9 +1,9 @@
    gdrsync.py
-   Copyright 2013 Fernando Arbeiza <fernando.arbeiza@gmail.com>
+   Copyright 2015 Fernando Arbeiza <fernando.arbeiza@gmail.com>
 
    This software has been developed in Python, released under an open source
-   license (http://docs.python.org/2/license.html)
+   license (http://docs.python.org/3/license.html)
 
    This software uses the library Google APIs Client Library for Python
-   (http://code.google.com/p/google-api-python-client/) released under the
+   (https://github.com/google/google-api-python-client) released under the
    Apache License, Version 2.0 (http://www.apache.org/licenses/LICENSE-2.0)
