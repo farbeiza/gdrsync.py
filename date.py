@@ -59,8 +59,7 @@ class Date(object):
         dateTime = datetime.datetime.utcfromtimestamp(seconds)
 
         # strftime does not have a format directive for milliseconds
-        millisOfSecond, _ = math.modf(seconds)
-        millisOfSecond = round(millisOfSecond * MS)
+        millisOfSecond = self._millis % MS
 
         return (dateTime.strftime(DATE_TIME_PRINT_FORMAT)
                 + (MILLIS_OF_SECOND_PRINT_FORMAT % millisOfSecond))
