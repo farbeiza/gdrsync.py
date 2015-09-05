@@ -14,6 +14,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import binaryunit
+import utils
+
+import logging
+import time
+
+CHUNKSIZE = 1 * utils.MIB
+
+PERCENTAGE = 100.0
+
+LOGGER = logging.getLogger(__name__)
+
 class TransferManager(object):
     def insertFolder(self, destinationFile):
         raise NotImplementedError()
@@ -29,3 +41,42 @@ class TransferManager(object):
 
     def touch(self, sourceFile, destinationFile):
         raise NotImplementedError()
+
+    def elapsed(self, start):
+        return time.time() - start
+
+    def updateSummary(self, summary, size, elapsed):
+        summary.addCopiedFiles(1)
+        summary.addCopiedSize(size)
+        summary.addCopiedTime(elapsed)
+
+    def logEnd(self, path, elapsed, fileSize, copiedFiles):
+        logMessage = self._logMessage(path, elapsed, fileSize, 1)
+
+        LOGGER.info('%s #%d', logMessage, copiedFiles)
+
+    def _logMessage(self, path, elapsed, bytesTransferred, progress):
+        b = binaryunit.BinaryUnit(bytesTransferred, 'B')
+        progressPercentage = round(progress * PERCENTAGE)
+        s = round(elapsed)
+
+        bS = binaryunit.bS(bytesTransferred, elapsed)
+
+        return '%s: %d%% (%d%s / %ds = %d%s)' % (path, progressPercentage,
+                                                 round(b.value), b.unit, s,
+                                                 round(bS.value), bS.unit)
+
+    def logProgress(self, path, elapsed, bytesTransferred, bytesTotal, progress):
+        logMessage = self._logMessage(path, elapsed, bytesTransferred, progress)
+        eta = self._eta(elapsed, bytesTransferred, bytesTotal)
+
+        LOGGER.info('%s ETA: %ds', logMessage, eta)
+
+    def _eta(self, elapsed, bytesTransferred, bytesTotal):
+        if bytesTransferred == 0:
+            return 0
+
+        bS = bytesTransferred / elapsed
+        finish = bytesTotal / bS
+
+        return round(finish - elapsed)

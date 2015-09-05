@@ -14,24 +14,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import binaryunit
 import driveutils
 import requestexecutor
 import transfermanager
-import utils
 
 import apiclient.http
-import logging
 import mimetypes
 import time
 
-CHUNKSIZE = 1 * utils.MIB
-
 DEFAULT_MIME_TYPE = 'application/octet-stream'
-
-PERCENTAGE = 100.0
-
-LOGGER = logging.getLogger(__name__)
 
 class UploadManager(transfermanager.TransferManager):
     def __init__(self, drive, summary):
@@ -64,9 +55,9 @@ class UploadManager(transfermanager.TransferManager):
         if mimeType is None:
             mimeType = DEFAULT_MIME_TYPE
 
-        resumable = (sourceFile.size > CHUNKSIZE)
+        resumable = (sourceFile.size > transfermanager.CHUNKSIZE)
         media = apiclient.http.MediaFileUpload(sourceFile.delegate,
-                mimetype = mimeType, chunksize = CHUNKSIZE,
+                mimetype = mimeType, chunksize = transfermanager.CHUNKSIZE,
                 resumable = resumable)
 
         def request():
@@ -75,61 +66,30 @@ class UploadManager(transfermanager.TransferManager):
             start = time.time()
             if not resumable:
                 file = request.execute()
-                self._logProgress(destinationFile.path, start, sourceFile.size)
+                elapsed = self.elapsed(start)
+                self.updateSummary(self._summary, sourceFile.size, elapsed)
+                self.logEnd(destinationFile.path, elapsed, sourceFile.size,
+                            self._summary.copiedFiles)
 
                 return file
 
             while True:
                 (progress, file) = request.next_chunk()
+                elapsed = self.elapsed(start)
                 if file is not None:
-                    self._logProgress(destinationFile.path, start, sourceFile.size)
+                    self.updateSummary(self._summary, sourceFile.size, elapsed)
+                    self.logEnd(destinationFile.path, elapsed, sourceFile.size,
+                                self._summary.copiedFiles)
 
                     return file
 
-                self._logProgress(destinationFile.path, start,
-                        progress.resumable_progress, progress.total_size,
-                        progress.progress(), False)
+                self.logProgress(destinationFile.path, elapsed,
+                                 progress.resumable_progress, progress.total_size,
+                                 progress.progress())
 
         file = requestexecutor.execute(request)
 
         return destinationFile.withDelegate(file)
-
-    def _logProgress(self, path, start, bytesUploaded, bytesTotal = None,
-            progress = 1.0, end = True):
-        if bytesTotal is None:
-            bytesTotal = bytesUploaded
-
-        elapsed = time.time() - start
-
-        b = binaryunit.BinaryUnit(bytesUploaded, 'B')
-        progressPercentage = round(progress * PERCENTAGE)
-        s = round(elapsed)
-
-        bS = binaryunit.bS(bytesUploaded, elapsed)
-
-        if end:
-            self._summary.addCopiedFiles(1)
-            self._summary.addCopiedSize(bytesTotal)
-            self._summary.addCopiedTime(elapsed)
-
-            LOGGER.info('%s: %d%% (%d%s / %ds = %d%s) #%d',
-                    path, progressPercentage, round(b.value), b.unit, s,
-                    round(bS.value), bS.unit, self._summary.copiedFiles)
-        else:
-            eta = self._eta(elapsed, bytesUploaded, bytesTotal)
-
-            LOGGER.info('%s: %d%% (%d%s / %ds = %d%s) ETA: %ds', path,
-                    progressPercentage, round(b.value), b.unit, s,
-                    round(bS.value), bS.unit, eta)
-
-    def _eta(self, elapsed, bytesUploaded, bytesTotal):
-        if bytesUploaded == 0:
-            return 0
-
-        bS = bytesUploaded / elapsed
-        finish = bytesTotal / bS
-
-        return round(finish - elapsed)
 
     def updateFile(self, sourceFile, destinationFile):
         def createRequest(body, media):

@@ -20,7 +20,8 @@ import os.path
 
 parser = argparse.ArgumentParser(description = 'Copy files between a local system'
                                  ' and a Google drive repository.',
-                                 epilog = 'Local URLs: URLs with the form file:///path'
+                                 epilog = 'Source and destination URLs may be local or remote. '
+                                 ' Local URLs: URLs with the form file:///path'
                                  ' or file://host/path or native path names.'
                                  ' Remote URLs: A URL with the form gdrive:///path'
                                  ' or gdrive://host/path.')

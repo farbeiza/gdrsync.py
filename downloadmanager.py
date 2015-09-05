@@ -14,24 +14,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import binaryunit
 import driveutils
 import requestexecutor
 import transfermanager
-import utils
 
 import apiclient.http
 import io
-import logging
-import mimetypes
 import os
+import shutil
 import time
-
-CHUNKSIZE = 1 * utils.MIB
-
-PERCENTAGE = 100.0
-
-LOGGER = logging.getLogger(__name__)
 
 class DownloadManager(transfermanager.TransferManager):
     def __init__(self, drive, summary):
@@ -65,7 +56,8 @@ class DownloadManager(transfermanager.TransferManager):
                        .get_media(fileId = sourceFile.delegate['id'],
                                   fields = driveutils.FIELDS))
 
-            return apiclient.http.MediaIoBaseDownload(fileObject, request, chunksize = CHUNKSIZE)
+            return apiclient.http.MediaIoBaseDownload(fileObject, request,
+                                                      chunksize = transfermanager.CHUNKSIZE)
 
         def request():
             with io.open(destinationFile.path, 'wb') as fileObject:
@@ -74,53 +66,19 @@ class DownloadManager(transfermanager.TransferManager):
                 start = time.time()
                 while True:
                     (progress, file) = media.next_chunk()
+                    elapsed = self.elapsed(start)
                     if file is not None:
-                        self._logProgress(destinationFile.path, start, sourceFile.size)
+                        self.updateSummary(self._summary, sourceFile.size, elapsed)
+                        self.logEnd(destinationFile.path, elapsed, sourceFile.size,
+                                    self._summary.copiedFiles)
 
                         return file
 
-                    self._logProgress(destinationFile.path, start,
-                                      progress.resumable_progress, progress.total_size,
-                                      progress.progress(), False)
+                    self.logProgress(destinationFile.path, elapsed,
+                                     progress.resumable_progress, progress.total_size,
+                                     progress.progress())
 
         requestexecutor.execute(request)
-
-    def _logProgress(self, path, start, bytesTransferred, bytesTotal = None,
-            progress = 1.0, end = True):
-        if bytesTotal is None:
-            bytesTotal = bytesTransferred
-
-        elapsed = time.time() - start
-
-        b = binaryunit.BinaryUnit(bytesTransferred, 'B')
-        progressPercentage = round(progress * PERCENTAGE)
-        s = round(elapsed)
-
-        bS = binaryunit.bS(bytesTransferred, elapsed)
-
-        if end:
-            self._summary.addCopiedFiles(1)
-            self._summary.addCopiedSize(bytesTotal)
-            self._summary.addCopiedTime(elapsed)
-
-            LOGGER.info('%s: %d%% (%d%s / %ds = %d%s) #%d',
-                    path, progressPercentage, round(b.value), b.unit, s,
-                    round(bS.value), bS.unit, self._summary.copiedFiles)
-        else:
-            eta = self._eta(elapsed, bytesTransferred, bytesTotal)
-
-            LOGGER.info('%s: %d%% (%d%s / %ds = %d%s) ETA: %ds', path,
-                    progressPercentage, round(b.value), b.unit, s,
-                    round(bS.value), bS.unit, eta)
-
-    def _eta(self, elapsed, bytesTransferred, bytesTotal):
-        if bytesTransferred == 0:
-            return 0
-
-        bS = bytesTransferred / elapsed
-        finish = bytesTotal / bS
-
-        return round(finish - elapsed)
 
     def updateFile(self, sourceFile, destinationFile):
         return self._copyFile(sourceFile, destinationFile)
