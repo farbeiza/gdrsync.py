@@ -16,6 +16,7 @@
 
 import driveutils
 import requestexecutor
+import remotedestmanager
 import transfermanager
 
 import apiclient.http
@@ -24,21 +25,11 @@ import time
 
 DEFAULT_MIME_TYPE = 'application/octet-stream'
 
-class UploadManager(transfermanager.TransferManager):
+class UploadManager(remotedestmanager.RemoteDestManager):
     def __init__(self, drive, summary):
-        self._drive = drive
+        super(UploadManager, self).__init__(drive)
+
         self._summary = summary
-
-    def insertFolder(self, sourceFile, destinationFile):
-        body = destinationFile.delegate.copy()
-        body['modifiedDate'] = str(sourceFile.modified)
-        def request():
-            return (self._drive.files().insert(body = body,
-                    fields = driveutils.FIELDS).execute())
-
-        file = requestexecutor.execute(request)
-
-        return destinationFile.withDelegate(file)
 
     def insertFile(self, sourceFile, destinationFile):
         def createRequest(body, media):
@@ -99,29 +90,3 @@ class UploadManager(transfermanager.TransferManager):
                             fields = driveutils.FIELDS))
 
         return self._copyFile(sourceFile, destinationFile, createRequest)
-
-    def remove(self, destinationFile):
-        def request():
-            return (self._drive.files()
-                    .trash(fileId = destinationFile.delegate['id'], fields = driveutils.FIELDS)
-                    .execute())
-
-        file = requestexecutor.execute(request)
-
-        return destinationFile.withDelegate(file)
-
-    def touch(self, sourceFile, destinationFile):
-        body = {'modifiedDate': str(sourceFile.modified)}
-
-        def request():
-            request = (self._drive.files()
-                    .patch(fileId = destinationFile.delegate['id'], body = body,
-                            setModifiedDate = True, fields = driveutils.FIELDS))
-            # Ignore Etags
-            request.headers['If-Match'] = '*'
-
-            return request.execute()
-
-        file = requestexecutor.execute(request)
-
-        return destinationFile.withDelegate(file)

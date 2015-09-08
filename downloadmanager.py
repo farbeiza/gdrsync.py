@@ -15,24 +15,18 @@
 # limitations under the License.
 
 import driveutils
+import localdestmanager
 import requestexecutor
 import transfermanager
 
 import apiclient.http
 import io
-import os
-import shutil
 import time
 
-class DownloadManager(transfermanager.TransferManager):
+class DownloadManager(localdestmanager.LocalDestManager):
     def __init__(self, drive, summary):
         self._drive = drive
         self._summary = summary
-
-    def insertFolder(self, sourceFile, destinationFile):
-        os.mkdir(destinationFile.path)
-
-        return self.touch(sourceFile, destinationFile)
 
     def insertFile(self, sourceFile, destinationFile):
         return self._copyFile(sourceFile, destinationFile)
@@ -82,17 +76,3 @@ class DownloadManager(transfermanager.TransferManager):
 
     def updateFile(self, sourceFile, destinationFile):
         return self._copyFile(sourceFile, destinationFile)
-
-    def remove(self, destinationFile):
-        if destinationFile.folder:
-            shutil.rmtree(destinationFile.path)
-        else:
-            os.remove(destinationFile.path)
-
-        return destinationFile.copy()
-
-    def touch(self, sourceFile, destinationFile):
-        os.utime(destinationFile.path,
-                 times = (sourceFile.modified.seconds, sourceFile.modified.seconds))
-
-        return destinationFile.copy()
