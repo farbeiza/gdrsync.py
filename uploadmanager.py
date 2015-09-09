@@ -57,6 +57,7 @@ class UploadManager(remotedestmanager.RemoteDestManager):
             request = createRequest(body, media)
             if not resumable:
                 file = request.execute()
+
                 elapsed = self.elapsed(start)
                 self.updateSummary(self._summary, sourceFile.size, elapsed)
                 self.logEnd(destinationFile.path, elapsed, sourceFile.size,

@@ -79,6 +79,7 @@ import driveutils
 import folder
 import localcopymanager
 import localfolder
+import remotecopymanager
 import remotefolder
 import summary
 import uploadmanager
@@ -127,7 +128,7 @@ class GDRsync(object):
     def createTransferManager(self, drive):
         if self.sourceFolderFactory.isRemote():
             if self.destFolderFactory.isRemote():
-                raise NotImplementedError()
+                return remotecopymanager.RemoteCopyManager(drive, self.summary)
             else:
                 return downloadmanager.DownloadManager(drive, self.summary)
         else:

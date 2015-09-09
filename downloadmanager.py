@@ -60,6 +60,7 @@ class DownloadManager(localdestmanager.LocalDestManager):
                 media = createMedia(dest)
                 while True:
                     (progress, file) = media.next_chunk()
+
                     elapsed = self.elapsed(start)
                     if file is not None:
                         self.updateSummary(self._summary, sourceFile.size, elapsed)

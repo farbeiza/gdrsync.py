@@ -25,7 +25,7 @@ import re
 
 TIMEOUT = 60 # seconds
 
-FIELDS = 'id, title, mimeType, createdDate, modifiedDate, md5Checksum, fileSize'
+FIELDS = 'id, title, mimeType, createdDate, modifiedDate, parents, md5Checksum, fileSize'
 
 DEFAULT_CLIENT_ID = '387402765904.apps.googleusercontent.com'
 DEFAULT_CLIENT_SECRET = 'WTj0xKbLAFjDqUeT2HGDZHCi'
