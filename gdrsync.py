@@ -77,6 +77,7 @@ import binaryunit
 import downloadmanager
 import driveutils
 import folder
+import localcopymanager
 import localfolder
 import remotefolder
 import summary
@@ -124,13 +125,16 @@ class GDRsync(object):
         raise RuntimeError('Unknown URL type: %s' % url)
 
     def createTransferManager(self, drive):
-        if self.sourceFolderFactory.isRemote() == self.destFolderFactory.isRemote():
-            raise RuntimeError('Cannot copy between a source and destination of the same type')
-
-        if self.destFolderFactory.isRemote():
-            return uploadmanager.UploadManager(drive, self.summary)
-
-        return downloadmanager.DownloadManager(drive, self.summary)
+        if self.sourceFolderFactory.isRemote():
+            if self.destFolderFactory.isRemote():
+                raise NotImplementedError()
+            else:
+                return downloadmanager.DownloadManager(drive, self.summary)
+        else:
+            if self.destFolderFactory.isRemote():
+                return uploadmanager.UploadManager(drive, self.summary)
+            else:
+                return localcopymanager.LocalCopyManager(self.summary)
 
     def sync(self):
         LOGGER.info('Starting...')
@@ -262,10 +266,7 @@ class GDRsync(object):
                     continue
 
                 output.addChild(destFile)
-            except OSError as error:
-                if error.errno != errno.ENOENT:
-                    raise
-
+            except FileNotFoundError as error:
                 LOGGER.warn('%s: No such file or directory.', sourceFile.path)
 
         return output

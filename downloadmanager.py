@@ -41,7 +41,7 @@ class DownloadManager(localdestmanager.LocalDestManager):
 
     def _copyEmptyFile(self, sourceFile, destinationFile):
         # Empty files raises an error when downloading, so just truncate the file
-        with io.open(destinationFile.path, 'wb') as fileObject:
+        with io.open(destinationFile.path, 'wb') as dest:
             pass
 
     def _copyNonEmptyFile(self, sourceFile, destinationFile):
@@ -54,10 +54,10 @@ class DownloadManager(localdestmanager.LocalDestManager):
                                                       chunksize = transfermanager.CHUNKSIZE)
 
         def request():
-            with io.open(destinationFile.path, 'wb') as fileObject:
-                media = createMedia(fileObject)
+            start = time.time()
 
-                start = time.time()
+            with io.open(destinationFile.path, 'wb') as dest:
+                media = createMedia(dest)
                 while True:
                     (progress, file) = media.next_chunk()
                     elapsed = self.elapsed(start)

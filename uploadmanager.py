@@ -52,9 +52,9 @@ class UploadManager(remotedestmanager.RemoteDestManager):
                 resumable = resumable)
 
         def request():
-            request = createRequest(body, media)
-
             start = time.time()
+
+            request = createRequest(body, media)
             if not resumable:
                 file = request.execute()
                 elapsed = self.elapsed(start)
