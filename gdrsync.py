@@ -45,8 +45,8 @@ parser.add_argument('--delete', action = 'store_true',
 parser.add_argument('--delete-excluded', action = 'store_true',
         help = 'also delete excluded files from dest dirs',
         dest = 'deleteExcluded')
-parser.add_argument('--exclude', action = 'append',
-        help = 'exclude files matching PATTERN', metavar = 'PATTERN')
+parser.add_argument('--rexclude', action = 'append',
+        help = 'exclude files matching REGEX', metavar = 'REGEX')
 parser.add_argument('-L', '--copy-links', action = 'store_true',
         help = 'transform symlink into referent file/dir', dest = 'copyLinks')
 parser.add_argument('-n', '--dry-run', action = 'store_true',
@@ -93,7 +93,7 @@ class GDRsync(object):
     def __init__(self, args):
         self.args = args
 
-        self.exclude = self._exclude(self.args.exclude)
+        self.exclude = self._exclude(self.args.rexclude)
 
         drive = driveutils.drive(self.args.saveCredentials)
 
