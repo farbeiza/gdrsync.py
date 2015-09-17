@@ -23,8 +23,8 @@ parser = argparse.ArgumentParser(description = 'Copy files between a local syste
                                  epilog = 'Source and destination URLs may be local or remote. '
                                  ' Local URLs: URLs with the form file:///path'
                                  ' or file://host/path or native path names.'
-                                 ' Remote URLs: A URL with the form gdrive:///path'
-                                 ' or gdrive://host/path.')
+                                 ' Remote URLs: A URL with the form gdrive:///path,'
+                                 ' gdrive://host/path or gdrive:/path.')
 
 nativeTrailingMessage = ''
 if os.path.sep != '/':
@@ -79,6 +79,7 @@ import driveutils
 import folder
 import localcopymanager
 import localfolder
+import location
 import remotecopymanager
 import remotefolder
 import summary
@@ -97,8 +98,11 @@ class GDRsync(object):
 
         drive = driveutils.drive(self.args.saveCredentials)
 
-        self.sourceFolderFactory = self.folderFactoryFromUrls(self.args.sourceUrls, drive)
-        self.destFolderFactory = self.folderFactoryFromUrl(self.args.destUrl, drive)
+        self.sourceLocations = [location.create(url) for url in self.args.sourceUrls]
+        self.destLocation = location.create(self.args.destUrl)
+
+        self.sourceFolderFactory = self.folderFactoryFromLocations(self.sourceLocations, drive)
+        self.destFolderFactory = self.folderFactoryFromLocation(self.destLocation, drive)
 
         self.summary = summary.Summary()
 
@@ -110,29 +114,24 @@ class GDRsync(object):
 
         return [re.compile(exclude) for exclude in excludeRes]
 
-    def folderFactoryFromUrls(self, urls, drive):
-        for url in urls:
-            return self.folderFactoryFromUrl(url, drive)
+    def folderFactoryFromLocations(self, locations, drive):
+        for location in locations:
+            return self.folderFactoryFromLocation(location, drive)
 
-    def folderFactoryFromUrl(self, url, drive):
-        folderFactory = remotefolder.Factory(drive)
-        if folderFactory.handlesUrl(url):
-            return folderFactory
+    def folderFactoryFromLocation(self, location, drive):
+        if location.remote:
+            return remotefolder.Factory(drive)
 
-        folderFactory = localfolder.Factory()
-        if folderFactory.handlesUrl(url):
-            return folderFactory
-
-        raise RuntimeError('Unknown URL type: %s' % url)
+        return localfolder.Factory()
 
     def createTransferManager(self, drive):
-        if self.sourceFolderFactory.isRemote():
-            if self.destFolderFactory.isRemote():
+        if self.sourceFolderFactory.remote:
+            if self.destFolderFactory.remote:
                 return remotecopymanager.RemoteCopyManager(drive, self.summary)
             else:
                 return downloadmanager.DownloadManager(drive, self.summary)
         else:
-            if self.destFolderFactory.isRemote():
+            if self.destFolderFactory.remote:
                 return uploadmanager.UploadManager(drive, self.summary)
             else:
                 return localcopymanager.LocalCopyManager(self.summary)
@@ -140,8 +139,8 @@ class GDRsync(object):
     def sync(self):
         LOGGER.info('Starting...')
 
-        virtualSourceFolder = self.sourceFolderFactory.virtualFromUrls(self.args.sourceUrls)
-        destFolder = self.destFolderFactory.fromUrl(self.args.destUrl)
+        virtualSourceFolder = self.sourceFolderFactory.virtualFromLocations(self.sourceLocations)
+        destFolder = self.destFolderFactory.create(self.destLocation)
         self._sync(virtualSourceFolder, destFolder)
 
         self.logResult();
@@ -160,13 +159,13 @@ class GDRsync(object):
 
         for sourceFile in sourceFolder.folders():
             if self.isExcluded(sourceFile):
-                LOGGER.info('%s: Skipping excluded folder...', sourceFile.path)
+                LOGGER.info('%s: Skipping excluded folder...', sourceFile.location)
                 continue
 
             if (not self.args.copyLinks) and sourceFile.link:
                 continue
 
-            destFile = destFolder.children[sourceFile.name]
+            destFile = destFolder.children[sourceFile.location.name]
 
             self._sync(self.createSourceFolder(sourceFile),
                     self.createDestFolder(destFile))
@@ -184,14 +183,14 @@ class GDRsync(object):
             return destFolder
 
         for destFile in destFolder.duplicate:
-            LOGGER.debug('%s: Duplicate file.', destFile.path)
+            LOGGER.debug('%s: Duplicate file.', destFile.location)
 
             destFile = self.trashFile(destFile)
 
         return destFolder.withoutDuplicate()
 
     def trashFile(self, destFile):
-        LOGGER.info('%s: Trashing file...', destFile.path)
+        LOGGER.info('%s: Trashing file...', destFile.location)
         if self.args.dryRun:
             return destFile
 
@@ -203,11 +202,11 @@ class GDRsync(object):
 
         output = destFolder.withoutChildren()
         for destFile in destFolder.children.values():
-            if destFile.name in sourceFolder.children:
+            if destFile.location.name in sourceFolder.children:
                 output.addChild(destFile)
                 continue
 
-            LOGGER.debug('%s: Extraneous file.', destFile.path)
+            LOGGER.debug('%s: Extraneous file.', destFile.location)
 
             destFile = self.trashFile(destFile)
 
@@ -219,12 +218,12 @@ class GDRsync(object):
 
         output = destFolder.withoutChildren()
         for destFile in destFolder.children.values():
-            sourceFile = sourceFolder.children[destFile.name]
+            sourceFile = sourceFolder.children[destFile.location.name]
             if sourceFile.folder == destFile.folder:
                 output.addChild(destFile)
                 continue
 
-            LOGGER.debug('%s: Different type: %s != %s.', destFile.path,
+            LOGGER.debug('%s: Different type: %s != %s.', destFile.location,
                     sourceFile.folder, destFile.folder)
 
             destFile = self.trashFile(destFile)
@@ -237,22 +236,22 @@ class GDRsync(object):
 
         output = destFolder.withoutChildren()
         for destFile in destFolder.children.values():
-            sourceFile = sourceFolder.children[destFile.name]
+            sourceFile = sourceFolder.children[destFile.location.name]
             if not self.isExcluded(sourceFile):
                 output.addChild(destFile)
                 continue
 
-            LOGGER.debug('%s: Excluded file.', destFile.path)
+            LOGGER.debug('%s: Excluded file.', destFile.location)
 
             destFile = self.trashFile(destFile)
 
         return output
 
     def isExcluded(self, sourceFile):
-        if sourceFile.path is None:
+        if sourceFile.location is None:
             return False
 
-        return any(re.match(sourceFile.path) for re in self.exclude)
+        return any(re.match(str(sourceFile.location)) for re in self.exclude)
 
     def syncFolder(self, sourceFolder, destFolder):
         output = (destFolder.withoutChildren()
@@ -268,32 +267,32 @@ class GDRsync(object):
 
                 output.addChild(destFile)
             except FileNotFoundError as error:
-                LOGGER.warn('%s: No such file or directory.', sourceFile.path)
+                LOGGER.warn('%s: No such file or directory.', sourceFile.location)
 
         return output
 
     def copy(self, sourceFile, destFolder):
-        destFile = destFolder.children.get(sourceFile.name)
+        destFile = destFolder.children.get(sourceFile.location.name)
 
         fileOperation = self.fileOperation(sourceFile, destFile)
         if fileOperation is None:
             return None
 
         if destFile is None:
-            destFile = destFolder.createFile(sourceFile.name, sourceFile.folder)
+            destFile = destFolder.createFile(sourceFile.location.name, sourceFile.folder)
 
         return fileOperation(sourceFile, destFile)
 
     def fileOperation(self, sourceFile, destFile):
         if self.isExcluded(sourceFile):
             LOGGER.info('%s: Skipping excluded file... (Checked %d/%d files)',
-                    sourceFile.path, self.summary.checkedFiles, self.summary.totalFiles)
+                    sourceFile.location, self.summary.checkedFiles, self.summary.totalFiles)
 
             return None
 
         if (not self.args.copyLinks) and sourceFile.link:
             LOGGER.info('%s: Skipping non-regular file... (Checked %d/%d files)',
-                    sourceFile.path, self.summary.checkedFiles, self.summary.totalFiles)
+                    sourceFile.location, self.summary.checkedFiles, self.summary.totalFiles)
 
             return None
 
@@ -305,7 +304,7 @@ class GDRsync(object):
 
         if self.args.update and (destFile.modified > sourceFile.modified):
             LOGGER.debug('%s: Newer destination file: %s < %s.',
-                    destFile.path, sourceFile.modified, destFile.modified)
+                    destFile.location, sourceFile.modified, destFile.modified)
         elif self.args.checksum:
             fileOperation = self.checkChecksum(sourceFile, destFile)
             if fileOperation is not None:
@@ -327,7 +326,7 @@ class GDRsync(object):
             if fileOperation is not None:
                 return fileOperation
 
-        LOGGER.debug('%s: Up to date. (Checked %d/%d files)', destFile.path,
+        LOGGER.debug('%s: Up to date. (Checked %d/%d files)', destFile.location,
                 self.summary.checkedFiles, self.summary.totalFiles)
 
         return None
@@ -336,7 +335,7 @@ class GDRsync(object):
         if destFile.md5 == sourceFile.md5:
             return None
 
-        LOGGER.debug('%s: Different checksum: %s != %s.', destFile.path,
+        LOGGER.debug('%s: Different checksum: %s != %s.', destFile.location,
                 sourceFile.md5, destFile.md5)
 
         return self.updateFile
@@ -345,7 +344,7 @@ class GDRsync(object):
         if destFile.size == sourceFile.size:
             return None
 
-        LOGGER.debug('%s: Different size: %d != %d.', destFile.path,
+        LOGGER.debug('%s: Different size: %d != %d.', destFile.location,
                 sourceFile.size, destFile.size)
 
         return self.updateFile
@@ -358,14 +357,14 @@ class GDRsync(object):
         if fileOperation is not None:
             return fileOperation
 
-        LOGGER.debug('%s: Different modified time: %s != %s.', destFile.path,
+        LOGGER.debug('%s: Different modified time: %s != %s.', destFile.location,
                 sourceFile.modified, destFile.modified)
 
         return self.touch
 
     def insertFolder(self, sourceFile, destFile):
         LOGGER.info('%s: Inserting folder... (Checked %d/%d files)',
-                destFile.path, self.summary.checkedFiles, self.summary.totalFiles)
+                destFile.location, self.summary.checkedFiles, self.summary.totalFiles)
         if self.args.dryRun:
             return destFile
 
@@ -373,7 +372,7 @@ class GDRsync(object):
 
     def insertFile(self, sourceFile, destFile):
         LOGGER.info('%s: Inserting file... (Checked %d/%d files)',
-                destFile.path, self.summary.checkedFiles, self.summary.totalFiles)
+                destFile.location, self.summary.checkedFiles, self.summary.totalFiles)
         if self.args.dryRun:
             return destFile
 
@@ -381,7 +380,7 @@ class GDRsync(object):
 
     def updateFile(self, sourceFile, destFile):
         LOGGER.info('%s: Updating file... (Checked %d/%d files)',
-                destFile.path, self.summary.checkedFiles, self.summary.totalFiles)
+                destFile.location, self.summary.checkedFiles, self.summary.totalFiles)
         if self.args.dryRun:
             return destFile
 
@@ -389,7 +388,7 @@ class GDRsync(object):
 
     def touch(self, sourceFile, destFile):
         LOGGER.info('%s: Updating modified date... (Checked %d/%d files)',
-                destFile.path, self.summary.checkedFiles, self.summary.totalFiles)
+                destFile.location, self.summary.checkedFiles, self.summary.totalFiles)
         if self.args.dryRun:
             return destFile
 

@@ -23,12 +23,13 @@ class Folder(object):
         self._duplicate = utils.firstNonNone(duplicate, [])
 
     def addChild(self, file):
-        if file.name in self._children:
+        name = file.location.name
+        if name in self._children:
             self._duplicate.append(file)
 
             return self
 
-        self._children[file.name] = file
+        self._children[name] = file
 
         return self
 
@@ -66,44 +67,29 @@ class Folder(object):
         raise NotImplementedError()
 
 class Factory(object):
-    def isRemote(self):
-        raise NotImplementedError()
-
-    def handlesUrl(self, url):
+    @property
+    def remote(self):
         raise NotImplementedError()
 
     def empty(self, file):
         raise NotImplementedError()
 
-    def fromUrl(self, url):
-        return self.create(self.pathFromUrl(url))
-
-    def pathFromUrl(self, url):
+    def create(self, location):
         raise NotImplementedError()
 
-    def create(self, path):
-        raise NotImplementedError()
-
-    def virtualFromUrls(self, urls):
-        return self.virtualFromPaths([self.pathFromUrl(url) for url in urls])
-
-    def virtualFromPaths(self, paths):
+    def virtualFromLocations(self, locations):
         virtualFolder = self.virtual()
-        for path in paths:
-            (head, tail) = self.split(path)
-            if tail == '':
-                pathFolder = self.create(head)
-                virtualFolder.addChildren(pathFolder.children.values())
+        for location in locations:
+            if location.contents:
+                locationFolder = self.create(location)
+                virtualFolder.addChildren(locationFolder.children.values())
             else:
-                pathFile = self.fileFactory.create(path)
-                virtualFolder.addChild(pathFile)
+                locationFile = self.fileFactory.create(location)
+                virtualFolder.addChild(locationFile)
 
         return virtualFolder
 
     def virtual(self):
-        raise NotImplementedError()
-
-    def split(self, path):
         raise NotImplementedError()
 
     @property

@@ -61,31 +61,18 @@ class Factory(folder.Factory):
     def __init__(self, drive):
         self._drive = drive
 
-    def isRemote(self):
+    @property
+    def remote(self):
         return True
-
-    def handlesUrl(self, url):
-        return self._pathFromUrl(url) is not None
-
-    def _pathFromUrl(self, urlString):
-        url = urllib.parse.urlparse(urlString)
-        if url.scheme != SCHEME:
-            return None
-
-        return url.path
 
     def empty(self, file):
         return RemoteFolder(file)
 
-    def pathFromUrl(self, url):
-        path = self._pathFromUrl(url)
-        if path is None:
-            raise RuntimeError('Invalid URL: URL is not a %s one: %s' % (SCHEME, urlString))
-
-        return path
-
     def create(self, file):
         if not isinstance(file, remotefile.RemoteFile):
+            if not file.remote:
+                raise RuntimeError('Expected a remote location: %s' % file)
+
             remoteFileFactory = remotefile.Factory(self._drive)
 
             return self.create(remoteFileFactory.create(file))

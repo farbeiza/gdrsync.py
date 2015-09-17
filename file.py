@@ -19,18 +19,13 @@ import utils
 import hashlib
 
 class File(object):
-    def __init__(self, path, name, folder = None):
-        self._path = path
-        self._name = name
+    def __init__(self, location, folder = None):
+        self._location = location
         self._folder = utils.firstNonNone(folder, False)
 
     @property
-    def path(self):
-        return self._path
-
-    @property
-    def name(self):
-        return self._name
+    def location(self):
+        return self._location
 
     @property
     def folder(self):
@@ -51,7 +46,7 @@ class File(object):
     def md5(self):
         if self.folder:
             md5 = hashlib.md5()
-            md5.update(self.name.encode('utf-8'))
+            md5.update(self.location.name.encode('utf-8'))
 
             return md5.hexdigest()
 

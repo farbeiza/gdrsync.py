@@ -19,9 +19,6 @@ import folder
 import localfile
 
 import os
-import urllib.parse
-
-SCHEME = 'file'
 
 class LocalFolder(folder.Folder):
     def withoutChildren(self):
@@ -34,30 +31,24 @@ class LocalFolder(folder.Folder):
         return localfile.fromParent(self.file, name, folder)
 
 class Factory(folder.Factory):
-    def isRemote(self):
+    @property
+    def remote(self):
         return False
-
-    def handlesUrl(self, url):
-        return True
 
     def empty(self, file):
         return LocalFolder(file)
 
-    def pathFromUrl(self, urlString):
-        url = urllib.parse.urlparse(urlString)
-        if url.scheme != SCHEME:
-            return urlString
-
-        return url.path
-
     def create(self, file):
         if not isinstance(file, localfile.LocalFile):
+            if file.remote:
+                raise RuntimeError('Expected a local location: %s' % file)
+
             localFileFactory = localfile.Factory()
 
             return self.create(localFileFactory.create(file))
 
         localFolder = LocalFolder(file)
-        for path in os.listdir(file.delegate):
+        for path in os.listdir(file.delegate.path):
             localFile = localfile.fromParent(file, path)
             localFolder.addChild(localFile)
 

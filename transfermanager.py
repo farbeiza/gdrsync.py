@@ -50,24 +50,24 @@ class TransferManager(object):
         summary.addCopiedSize(size)
         summary.addCopiedTime(elapsed)
 
-    def logEnd(self, path, elapsed, fileSize, copiedFiles):
-        logMessage = self._logMessage(path, elapsed, fileSize, 1)
+    def logEnd(self, location, elapsed, fileSize, copiedFiles):
+        logMessage = self._logMessage(location, elapsed, fileSize, 1)
 
         LOGGER.info('%s #%d', logMessage, copiedFiles)
 
-    def _logMessage(self, path, elapsed, bytesTransferred, progress):
+    def _logMessage(self, location, elapsed, bytesTransferred, progress):
         b = binaryunit.BinaryUnit(bytesTransferred, 'B')
         progressPercentage = round(progress * PERCENTAGE)
         s = round(elapsed)
 
         bS = binaryunit.bS(bytesTransferred, elapsed)
 
-        return '%s: %d%% (%d%s / %ds = %d%s)' % (path, progressPercentage,
+        return '%s: %d%% (%d%s / %ds = %d%s)' % (location, progressPercentage,
                                                  round(b.value), b.unit, s,
                                                  round(bS.value), bS.unit)
 
-    def logProgress(self, path, elapsed, bytesTransferred, bytesTotal, progress):
-        logMessage = self._logMessage(path, elapsed, bytesTransferred, progress)
+    def logProgress(self, location, elapsed, bytesTransferred, bytesTotal, progress):
+        logMessage = self._logMessage(location, elapsed, bytesTransferred, progress)
         eta = self._eta(elapsed, bytesTransferred, bytesTotal)
 
         LOGGER.info('%s ETA: %ds', logMessage, eta)

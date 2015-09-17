@@ -64,12 +64,12 @@ class DownloadManager(localdestmanager.LocalDestManager):
                     elapsed = self.elapsed(start)
                     if file is not None:
                         self.updateSummary(self._summary, sourceFile.size, elapsed)
-                        self.logEnd(destinationFile.path, elapsed, sourceFile.size,
+                        self.logEnd(destinationFile.location, elapsed, sourceFile.size,
                                     self._summary.copiedFiles)
 
                         return file
 
-                    self.logProgress(destinationFile.path, elapsed,
+                    self.logProgress(destinationFile.location, elapsed,
                                      progress.resumable_progress, progress.total_size,
                                      progress.progress())
 

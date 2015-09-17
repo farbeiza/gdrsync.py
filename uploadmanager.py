@@ -22,8 +22,11 @@ import transfermanager
 import apiclient.http
 import mimetypes
 import time
+import logging
 
 DEFAULT_MIME_TYPE = 'application/octet-stream'
+
+LOGGER = logging.getLogger(__name__)
 
 class UploadManager(remotedestmanager.RemoteDestManager):
     def __init__(self, drive, summary):
@@ -42,12 +45,12 @@ class UploadManager(remotedestmanager.RemoteDestManager):
         body = destinationFile.delegate.copy()
         body['modifiedDate'] = str(sourceFile.modified)
 
-        (mimeType, encoding) = mimetypes.guess_type(sourceFile.delegate)
+        (mimeType, encoding) = mimetypes.guess_type(sourceFile.location.path)
         if mimeType is None:
             mimeType = DEFAULT_MIME_TYPE
 
         resumable = (sourceFile.size > transfermanager.CHUNKSIZE)
-        media = apiclient.http.MediaFileUpload(sourceFile.delegate,
+        media = apiclient.http.MediaFileUpload(sourceFile.location.path,
                 mimetype = mimeType, chunksize = transfermanager.CHUNKSIZE,
                 resumable = resumable)
 
@@ -60,7 +63,7 @@ class UploadManager(remotedestmanager.RemoteDestManager):
 
                 elapsed = self.elapsed(start)
                 self.updateSummary(self._summary, sourceFile.size, elapsed)
-                self.logEnd(destinationFile.path, elapsed, sourceFile.size,
+                self.logEnd(destinationFile.location, elapsed, sourceFile.size,
                             self._summary.copiedFiles)
 
                 return file
@@ -70,12 +73,12 @@ class UploadManager(remotedestmanager.RemoteDestManager):
                 elapsed = self.elapsed(start)
                 if file is not None:
                     self.updateSummary(self._summary, sourceFile.size, elapsed)
-                    self.logEnd(destinationFile.path, elapsed, sourceFile.size,
+                    self.logEnd(destinationFile.location, elapsed, sourceFile.size,
                                 self._summary.copiedFiles)
 
                     return file
 
-                self.logProgress(destinationFile.path, elapsed,
+                self.logProgress(destinationFile.location, elapsed,
                                  progress.resumable_progress, progress.total_size,
                                  progress.progress())
 

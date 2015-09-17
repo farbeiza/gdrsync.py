@@ -23,26 +23,27 @@ import os.path
 
 MD5_BUFFER_SIZE = 16 * utils.KIB
 
-def fromParent(parent, path, folder = None):
-    return fromParentPath(parent.path, path, folder)
+def fromParent(parent, name, folder = None):
+    return fromParentLocation(parent.location, name, folder)
 
-def fromParentPath(parentPath, path, folder = None):
-    name = os.path.basename(path)
-    path = os.path.join(parentPath, name)
+def fromParentLocation(parentLocation, name, folder = None):
+    location = parentLocation.join(name)
 
-    return LocalFile(path, folder)
+    return LocalFile(location, folder)
 
 class LocalFile(file.File):
-    def __init__(self, path, folder = None):
-        path = path
-        name = os.path.basename(path)
-        folder = utils.firstNonNone(folder, os.path.isdir(path))
+    def __init__(self, location, folder = None):
+        folder = utils.firstNonNone(folder, os.path.isdir(location.path))
 
-        super(LocalFile, self).__init__(path, name, folder)
+        super(LocalFile, self).__init__(location, folder)
 
     @property
     def delegate(self):
-        return self.path
+        return self.location
+
+    @property
+    def path(self):
+        return self.location.path
 
     @property
     def contentSize(self):
@@ -80,8 +81,12 @@ class LocalFile(file.File):
         return LocalFile(self.path)
 
 class Factory(object):
-    def create(self, path):
-        if not os.path.exists(path):
-            raise RuntimeError('%s not found' % path)
+    def create(self, location):
+        if location.remote:
+            raise RuntimeError('Expected a local location: %s' % location)
 
-        return LocalFile(path)
+        file = LocalFile(location)
+        if not file.exists:
+            raise RuntimeError('%s not found' % location)
+
+        return file
