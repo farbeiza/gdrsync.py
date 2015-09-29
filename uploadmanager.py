@@ -49,7 +49,7 @@ class UploadManager(remotedestmanager.RemoteDestManager):
         if mimeType is None:
             mimeType = DEFAULT_MIME_TYPE
 
-        resumable = (sourceFile.size > transfermanager.CHUNKSIZE)
+        resumable = (sourceFile.size > 0)
         media = apiclient.http.MediaFileUpload(sourceFile.location.path,
                 mimetype = mimeType, chunksize = transfermanager.CHUNKSIZE,
                 resumable = resumable)
