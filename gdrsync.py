@@ -15,8 +15,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import filter
+
 import argparse
 import os.path
+import re
 
 parser = argparse.ArgumentParser(description = 'Copy files between a local system'
                                  ' and a Google drive repository.',
@@ -40,25 +43,63 @@ parser.add_argument('destUrl', help = 'destination URL', metavar = 'DEST')
 
 parser.add_argument('-c', '--checksum', action = 'store_true',
         help = 'skip based on checksum, not mod-time & size')
+parser.add_argument('-L', '--copy-links', action = 'store_true', dest = 'copyLinks',
+        help = 'transform symlink into referent file/dir')
 parser.add_argument('--delete', action = 'store_true',
         help = 'delete duplicate and extraneous files from dest dirs')
-parser.add_argument('--delete-excluded', action = 'store_true',
-        help = 'also delete excluded files from dest dirs',
-        dest = 'deleteExcluded')
-parser.add_argument('--rexclude', action = 'append',
-        help = 'exclude files matching REGEX', metavar = 'REGEX')
-parser.add_argument('-L', '--copy-links', action = 'store_true',
-        help = 'transform symlink into referent file/dir', dest = 'copyLinks')
-parser.add_argument('-n', '--dry-run', action = 'store_true',
-        help = 'perform a trial run with no changes made', dest = 'dryRun')
+parser.add_argument('--delete-excluded', action = 'store_true', dest = 'deleteExcluded',
+        help = 'also delete excluded files from dest dirs')
+parser.add_argument('-n', '--dry-run', action = 'store_true', dest = 'dryRun',
+        help = 'perform a trial run with no changes made')
 parser.add_argument('-r', '--recursive', action = 'store_true',
         help = 'recurse into directories')
-parser.add_argument('-S', '--save-credentials', action = 'store_true',
-        help = 'save credentials for future re-use', dest = 'saveCredentials')
+
+class FilterAction(argparse.Action):
+    def __init__(self, option_strings, dest, nargs = None, **kwargs):
+        if nargs is not None:
+            raise ValueError("nargs not allowed")
+
+        super().__init__(option_strings, dest, **kwargs)
+
+    def __call__(self, parser, namespace, values, option_string = None):
+        filters = getattr(namespace, self.dest, [])
+        if filters is None:
+            filters = []
+
+        regex = re.compile(values)
+        filter = self.filter(regex)
+        filters.append(filter)
+
+        setattr(namespace, self.dest, filters)
+
+    def filter(self, re):
+        raise NotImplementedError()
+
+class ExcludeAction(FilterAction):
+    def __init__(self, option_strings, dest, nargs = None, **kwargs):
+        super().__init__(option_strings, dest, **kwargs)
+
+    def filter(self, re):
+        return filter.Exclude(re)
+
+class IncludeAction(FilterAction):
+    def __init__(self, option_strings, dest, nargs = None, **kwargs):
+        super().__init__(option_strings, dest, **kwargs)
+
+    def filter(self, re):
+        return filter.Include(re)
+
+parser.add_argument('--rexclude', action = ExcludeAction, dest = 'filters',
+        help = 'exclude files matching REGEX', metavar = 'REGEX')
+parser.add_argument('--rinclude', action = IncludeAction, dest = 'filters',
+        help = 'don\'t exclude files matching REGEX', metavar = 'REGEX')
+
+parser.add_argument('-S', '--save-credentials', action = 'store_true', dest = 'saveCredentials',
+        help = 'save credentials for future re-use')
 parser.add_argument('-u', '--update', action = 'store_true',
         help = 'skip files that are newer on the receiver')
-parser.add_argument('-v', '--verbose', action='count', default = 0,
-        help = 'increase verbosity', dest = 'verbosity')
+parser.add_argument('-v', '--verbose', action='count', default = 0, dest = 'verbosity',
+        help = 'increase verbosity')
 
 args = parser.parse_args()
 
@@ -86,15 +127,12 @@ import summary
 import uploadmanager
 
 import errno
-import re
 
 LOGGER = logging.getLogger(__name__)
 
 class GDRsync(object):
     def __init__(self, args):
         self.args = args
-
-        self.exclude = self._exclude(self.args.rexclude)
 
         drive = driveutils.drive(self.args.saveCredentials)
 
@@ -107,12 +145,6 @@ class GDRsync(object):
         self.summary = summary.Summary()
 
         self.transferManager = self.createTransferManager(drive)
-
-    def _exclude(self, excludeRes):
-        if excludeRes is None:
-            return []
-
-        return [re.compile(exclude) for exclude in excludeRes]
 
     def folderFactoryFromLocations(self, locations, drive):
         for location in locations:
@@ -247,11 +279,8 @@ class GDRsync(object):
 
         return output
 
-    def isExcluded(self, sourceFile):
-        if sourceFile.location is None:
-            return False
-
-        return any(re.match(str(sourceFile.location)) for re in self.exclude)
+    def isExcluded(self, file):
+        return filter.isExcluded(self.args.filters, file)
 
     def syncFolder(self, sourceFolder, destFolder):
         output = (destFolder.withoutChildren()
