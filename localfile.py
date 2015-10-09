@@ -78,7 +78,7 @@ class LocalFile(file.File):
         return os.path.islink(self.path)
 
     def copy(self):
-        return LocalFile(self.path)
+        return LocalFile(self.location)
 
 class Factory(object):
     def create(self, location):
