@@ -14,6 +14,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import utils
+
 import copy
 import os.path
 import posixpath
@@ -40,6 +42,10 @@ class Location(object):
         raise NotImplementedError()
 
     @property
+    def relativePath(self):
+        raise NotImplementedError()
+
+    @property
     def name(self):
         raise NotImplementedError()
 
@@ -55,12 +61,16 @@ class Location(object):
     def contents(self):
         raise NotImplementedError()
 
+    def withBase(self, baseLocation):
+        raise NotImplementedError()
+
     def join(self, path):
         raise NotImplementedError()
 
 class Url(Location):
-    def __init__(self, url):
+    def __init__(self, url, base = None):
         self._url = url
+        self._base = utils.firstNonNone(base, self._path)
 
     @property
     def path(self):
@@ -79,6 +89,10 @@ class Url(Location):
         return path
 
     @property
+    def relativePath(self):
+        return posixpath.relpath(self._path, self._base)
+
+    @property
     def name(self):
         return posixpath.basename(self._path)
 
@@ -91,15 +105,20 @@ class Url(Location):
         return self._withPath(parentPath)
 
     def _withPath(self, newPath):
-        return self.create(urllib.parse.ParseResult(self._url.scheme, self._url.netloc, newPath,
-                                                    self._url.params, self._url.query,
-                                                    self._url.fragment))
-    def create(self, url):
+        newUrl = urllib.parse.ParseResult(self._url.scheme, self._url.netloc, newPath,
+                                          self._url.params, self._url.query, self._url.fragment)
+
+        return self.create(newUrl, self._base)
+
+    def create(self, url, base):
         raise NotImplementedError()
 
     @property
     def contents(self):
         return self._url.path.endswith(URL_SEPARATOR)
+
+    def withBase(self, baseLocation):
+        return create(self._url, baseLocation._path)
 
     def join(self, path):
         newPath = self._path
@@ -116,20 +135,21 @@ class RemoteUrl(Url):
     def remote(self):
         return True
 
-    def create(self, url):
-        return RemoteUrl(url)
+    def create(self, url, base):
+        return RemoteUrl(url, base)
 
 class LocalUrl(Url):
     @property
     def remote(self):
         return False
 
-    def create(self, url):
-        return LocalUrl(url)
+    def create(self, url, base):
+        return LocalUrl(url, base)
 
 class LocalPath(Location):
-    def __init__(self, path):
+    def __init__(self, path, base = None):
         self._path = path
+        self._base = utils.firstNonNone(base, path)
 
     @property
     def path(self):
@@ -144,6 +164,10 @@ class LocalPath(Location):
         return path
 
     @property
+    def relativePath(self):
+        return os.path.relpath(self.path, self._base)
+
+    @property
     def name(self):
         return os.path.basename(self.path)
 
@@ -153,7 +177,10 @@ class LocalPath(Location):
         if parentPath == self.path:
             return None
 
-        return LocalPath(parentPath)
+        return self._withPath(parentPath)
+
+    def _withPath(self, path):
+        return LocalPath(path, self._base)
 
     @property
     def remote(self):
@@ -163,8 +190,11 @@ class LocalPath(Location):
     def contents(self):
         return self._path.endswith(os.path.sep)
 
+    def withBase(self, baseLocation):
+        return LocalPath(self._path, baseLocation.path)
+
     def join(self, path):
-        return LocalPath(os.path.join(self._path, path))
+        return self._withPath(os.path.join(self._path, path))
 
     def __str__(self):
         return str(self._path)

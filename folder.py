@@ -84,6 +84,7 @@ class Factory(object):
                 locationFolder = self.create(location)
                 virtualFolder.addChildren(locationFolder.children.values())
             else:
+                location = location.withBase(location.parent)
                 locationFile = self.fileFactory.create(location)
                 virtualFolder.addChild(locationFile)
 

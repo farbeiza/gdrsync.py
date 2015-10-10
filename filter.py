@@ -40,7 +40,7 @@ class Filter(object):
         return None
 
     def _check(self, file):
-        return self._regex.match(str(file.location))
+        return self._regex.match(file.location.relativePath)
 
     def _checkValue(self):
         raise NotImplementedError()
