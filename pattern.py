@@ -91,7 +91,10 @@ class Lexer(object):
         self._charBuffer = PeekableDecorator(string)
         self._tokenContent = ""
 
-    def token(self):
+    def __iter__(self):
+        return self
+
+    def next(self):
         char = self._peek()
         if self._match(char, None):
             return None
