@@ -39,97 +39,111 @@ class Token(object):
     def content(self):
         return self._content
 
-class Lexer(object):
+class StringBuffer(object):
     def __init__(self, string):
         self._string = string
+        self._index = 0
+
+    def peek(self, offset = 0):
+        if self._index >= len(self._string):
+            return None
+
+        return self._string[self._index]
+
+    def read(self, maxLength = 1):
+        start = self._index
+        end = start + maxLength
+        if end > len(self._string):
+            end = len(self._string)
+        if end <= start:
+            return None
+
+        self._index = end
+
+        return self._string[start:end]
+
+class Lexer(object):
+    def __init__(self, stringBuffer):
+        self._stringBuffer = stringBuffer
         self._tokenContent = ""
-        self._tokenIndex = 0
 
     def token(self):
-        char = self.peek()
-        if self.match(char, None):
+        char = self._peek()
+        if self._match(char, None):
             return None
-        if self.match(char, ASTERISK):
-            return self.handleAsterisk()
-        if self.match(char, QUESTION_MARK):
-            return self.handleQuestionMark()
-        if self.match(char, CHAR_CLASS_START):
-            return self.handleCharClass()
+        if self._match(char, ASTERISK):
+            return self._handleAsterisk()
+        if self._match(char, QUESTION_MARK):
+            return self._handleQuestionMark()
+        if self._match(char, CHAR_CLASS_START):
+            return self._handleCharClass()
 
-        return self.handleText()
+        return self._handleText()
 
-    def handleAsterisk(self):
-        self.read()
-        if self.match(self.peek(), ASTERISK):
-            self.read()
+    def _handleAsterisk(self):
+        self._read()
+        if self._match(self._peek(), ASTERISK):
+            self._read()
 
             return self._token(Token.MATCH_ALL)
 
         return self._token(Token.MATCH_MULTIPLE)
 
-    def handleQuestionMark(self):
-        self.read()
+    def _handleQuestionMark(self):
+        self._read()
 
         return self._token(Token.MATCH_ONE)
 
-    def handleCharClass(self):
-        self.read(2)
+    def _handleCharClass(self):
+        self._read(2)
 
-        char = self.peek()
-        while not self.match(char, None):
-            self.read()
-            if self.match(char, CHAR_CLASS_END):
+        char = self._peek()
+        while not self._match(char, None):
+            self._read()
+            if self._match(char, CHAR_CLASS_END):
                 break
-            if self.match(char, ESCAPE):
-                if self.match(self.peek(), CHAR_CLASS_END):
-                    self.read()
+            if self._match(char, ESCAPE):
+                if self._match(self._peek(), CHAR_CLASS_END):
+                    self._read()
 
-            char = self.peek()
+            char = self._peek()
 
         return self._token(Token.CHAR_CLASS)
 
-    def handleText(self):
-        char = self.peek()
-        while not self.match(char, None):
-            if self.match(char, WILDCARD_START):
+    def _handleText(self):
+        char = self._peek()
+        while not self._match(char, None):
+            if self._match(char, WILDCARD_START):
                 break
 
-            self.read()
-            if self.match(char, ESCAPE):
-                if self.match(self.peek(), WILDCARD_START):
-                    self.read()
+            self._read()
+            if self._match(char, ESCAPE):
+                if self._match(self._peek(), WILDCARD_START):
+                    self._read()
 
-            char = self.peek()
+            char = self._peek()
 
         return self._token(Token.TEXT)
 
-    def match(self, left, right):
+    def _peek(self, offset = 0):
+        return self._stringBuffer.peek(offset)
+
+    def _read(self, maxLength = 1):
+        content = self._stringBuffer.read(maxLength)
+        if content is None:
+            return None
+
+        self._tokenContent += content
+
+        return content
+
+    def _match(self, left, right):
         if right is None:
             return left is None
         if left is None:
             return right is None
 
         return left in right
-
-    def peek(self, offset = 0):
-        if self._tokenIndex >= len(self._string):
-            return None
-
-        return self._string[self._tokenIndex]
-    def read(self, length = 1):
-
-        start = self._tokenIndex
-        end = start + length
-        if end > len(self._string):
-            end = len(self._string)
-        if end <= start:
-            return None
-
-        content = self._string[start:end]
-        self._tokenContent += content
-        self._tokenIndex += length
-
-        return content
 
     def _token(self, type):
         tokenContent = self._tokenContent
