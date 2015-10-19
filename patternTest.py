@@ -49,7 +49,7 @@ class LexerTestCase(unittest.TestCase):
         self._testSingle(string, pattern.Token.MATCH_ALL)
 
     def _testSingle(self, string, tokenType):
-        lexer = pattern.Lexer(pattern.StringBuffer(string))
+        lexer = pattern.Lexer(string)
 
         token = lexer.token()
         self.assertEqual(token.type, tokenType)
@@ -76,7 +76,7 @@ class LexerTestCase(unittest.TestCase):
             string += value
             string += TEXT_TEST
 
-        lexer = pattern.Lexer(pattern.StringBuffer(string))
+        lexer = pattern.Lexer(string)
 
         token = lexer.token()
         self.assertEqual(token.type, pattern.Token.TEXT)

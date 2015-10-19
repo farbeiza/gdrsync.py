@@ -14,6 +14,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import collections
+import itertools
+
 ESCAPE = "\\"
 
 ASTERISK = "*"
@@ -39,32 +42,53 @@ class Token(object):
     def content(self):
         return self._content
 
-class StringBuffer(object):
-    def __init__(self, string):
-        self._string = string
-        self._index = 0
+class PeekableDecorator(object):
+    def __init__(self, delegate):
+        self._delegate = iter(delegate)
+        self._cache = collections.deque()
+
+    def __iter__(self):
+        return self
 
     def peek(self, offset = 0):
-        if self._index >= len(self._string):
+        self._fillcache(offset + 1)
+
+        if offset >= len(self._cache):
             return None
 
-        return self._string[self._index]
+        return self._cache[offset]
 
-    def read(self, maxLength = 1):
-        start = self._index
-        end = start + maxLength
-        if end > len(self._string):
-            end = len(self._string)
-        if end <= start:
-            return None
+    def _fillcache(self, size):
+        while len(self._cache) < size:
+            try:
+                self._cache.append(self._delegate.next())
+            except StopIteration:
+                break
 
-        self._index = end
+    def next(self, size = None):
+        if size is not None:
+            self._fillcache(size)
 
-        return self._string[start:end]
+            return self._popleft(size)
+
+        if not self._cache:
+            return self._delegate.next()
+
+        return self._cache.popleft()
+
+    def _popleft(self, size):
+        result = list(itertools.islice(self._cache, 0, size))
+        for i in range(size):
+            if not self._cache:
+                break
+
+            self._cache.popleft()
+
+        return result
 
 class Lexer(object):
-    def __init__(self, stringBuffer):
-        self._stringBuffer = stringBuffer
+    def __init__(self, string):
+        self._charBuffer = PeekableDecorator(string)
         self._tokenContent = ""
 
     def token(self):
@@ -126,12 +150,14 @@ class Lexer(object):
         return self._token(Token.TEXT)
 
     def _peek(self, offset = 0):
-        return self._stringBuffer.peek(offset)
+        return self._charBuffer.peek(offset)
 
     def _read(self, maxLength = 1):
-        content = self._stringBuffer.read(maxLength)
-        if content is None:
+        content = self._charBuffer.next(maxLength)
+        if not content:
             return None
+
+        content = "".join(content)
 
         self._tokenContent += content
 
