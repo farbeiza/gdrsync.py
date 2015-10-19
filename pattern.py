@@ -50,31 +50,23 @@ class PeekableDecorator(object):
     def __iter__(self):
         return self
 
-    def peek(self, offset = 0):
-        self._fillcache(offset + 1)
+    def __next__(self):
+        if not self._cache:
+            return next(self._delegate)
 
-        if offset >= len(self._cache):
-            return None
+        return self._cache.popleft()
 
-        return self._cache[offset]
+    def next(self, size):
+        self._fillcache(size)
+
+        return self._popleft(size)
 
     def _fillcache(self, size):
         while len(self._cache) < size:
             try:
-                self._cache.append(self._delegate.next())
+                self._cache.append(next(self._delegate))
             except StopIteration:
                 break
-
-    def next(self, size = None):
-        if size is not None:
-            self._fillcache(size)
-
-            return self._popleft(size)
-
-        if not self._cache:
-            return self._delegate.next()
-
-        return self._cache.popleft()
 
     def _popleft(self, size):
         result = list(itertools.islice(self._cache, 0, size))
@@ -86,6 +78,14 @@ class PeekableDecorator(object):
 
         return result
 
+    def peek(self, offset = 0):
+        self._fillcache(offset + 1)
+
+        if offset >= len(self._cache):
+            return None
+
+        return self._cache[offset]
+
 class Lexer(object):
     def __init__(self, string):
         self._charBuffer = PeekableDecorator(string)
@@ -94,7 +94,7 @@ class Lexer(object):
     def __iter__(self):
         return self
 
-    def next(self):
+    def __next__(self):
         char = self._peek()
         if self._match(char, None):
             return None

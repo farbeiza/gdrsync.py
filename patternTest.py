@@ -51,11 +51,11 @@ class LexerTestCase(unittest.TestCase):
     def _testSingle(self, string, tokenType):
         lexer = pattern.Lexer(string)
 
-        token = lexer.token()
+        token = next(lexer)
         self.assertEqual(token.type, tokenType)
         self.assertEqual(token.content, string)
 
-        token = lexer.token()
+        token = next(lexer)
         self.assertEqual(token, None)
 
     def testMatchMultiple(self):
@@ -78,20 +78,20 @@ class LexerTestCase(unittest.TestCase):
 
         lexer = pattern.Lexer(string)
 
-        token = lexer.token()
+        token = next(lexer)
         self.assertEqual(token.type, pattern.Token.TEXT)
         self.assertEqual(token.content, TEXT_TEST)
 
         for (type, value) in MULTIPLE_TEST_CASES.items():
-            token = lexer.token()
+            token = next(lexer)
             self.assertEqual(token.type, type)
             self.assertEqual(token.content, value)
 
-            token = lexer.token()
+            token = next(lexer)
             self.assertEqual(token.type, pattern.Token.TEXT)
             self.assertEqual(token.content, TEXT_TEST)
 
-        token = lexer.token()
+        token = next(lexer)
         self.assertEqual(token, None)
 
 if __name__ == '__main__':
