@@ -16,6 +16,7 @@
 
 import collections
 import itertools
+import re
 
 ESCAPE = "\\"
 
@@ -179,3 +180,52 @@ class Lexer(object):
         self._tokenContent = ""
 
         return Token(type, tokenContent)
+
+class Parser(object):
+    def __init__(self, lexer):
+        self._lexer = PeekableDecorator(lexer)
+        self._re = ""
+
+    @property
+    def re(self):
+        self._pattern()
+
+        return re.compile(self._re)
+
+    def _pattern(self):
+        token = self._lexer.peek()
+        while token is not None:
+            if (token.type == Token.MATCH_ALL):
+                self._matchAll()
+            elif (token.type == Token.MATCH_MULTIPLE):
+                self._matchMultiple()
+            elif (token.type == Token.MATCH_ONE):
+                self._matchOne()
+            elif (token.type == Token.CHAR_CLASS):
+                self._charClass()
+            elif (token.type == Token.TEXT):
+                self._text()
+            else:
+                raise Error("Unexpected token: " + token)
+
+            token = self._lexer.peek()
+
+    def _matchAll(self):
+        token = next(self._lexer)
+        self._re += ".*"
+
+    def _matchMultiple(self):
+        token = next(self._lexer)
+        self._re += "[^/]*"
+
+    def _matchOne(self):
+        token = next(self._lexer)
+        self._re += "[^/]"
+
+    def _charClass(self):
+        token = next(self._lexer)
+        self._re += token.content
+
+    def _text(self):
+        token = next(self._lexer)
+        self._re += re.escape(token.content)

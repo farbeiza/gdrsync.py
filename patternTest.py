@@ -94,5 +94,31 @@ class LexerTestCase(unittest.TestCase):
         token = next(lexer)
         self.assertEqual(token, None)
 
+class ParserTestCase(unittest.TestCase):
+    def testMatchAll(self):
+        self._test(pattern.ASTERISK + pattern.ASTERISK,
+                   match = ["a"],
+                   notMatch = [])
+
+    def _test(self, patternString, match = [], notMatch = []):
+        for string in match:
+            self._testSingle(patternString, string, True)
+        for string in notMatch:
+            self._testSingle(patternString, string, False)
+
+    def _testSingle(self, patternString, string, expected):
+        lexer = pattern.Lexer(patternString)
+        parser = pattern.Parser(lexer)
+        regex = parser.re
+
+        actual = regex.match(string) is not None
+        self.assertEqual(actual, expected,
+                         "Pattern: /%s/, String: \"%s\"" % (patternString, string))
+
+    def testMatchOne(self):
+        self._test(pattern.QUESTION_MARK,
+                   match = ["a"],
+                   notMatch = ["aa", "/"])
+
 if __name__ == '__main__':
     unittest.main()
