@@ -14,9 +14,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import filter
+
 import collections
 import itertools
 import re
+
+SLASH = "/"
 
 ESCAPE = "\\"
 
@@ -26,10 +30,22 @@ QUESTION_MARK = "?"
 CHAR_CLASS_START = "["
 CHAR_CLASS_END = "]"
 
-WILDCARD_START = ASTERISK + QUESTION_MARK + CHAR_CLASS_START
+NOT_TEXT = SLASH + ESCAPE + ASTERISK + QUESTION_MARK + CHAR_CLASS_START
+
+def filter(pattern, filterClass):
+    lexer = Lexer(pattern)
+    parser = Parser(lexer)
+
+    return parser.filter(filterClass)
 
 class Token(object):
-    TEXT, MATCH_ALL, MATCH_MULTIPLE, MATCH_ONE, CHAR_CLASS = range(5)
+    (
+        TEXT,
+        SLASH,
+        MATCH_ALL, MATCH_MULTIPLE, MATCH_ONE, CHAR_CLASS,
+        ESCAPE,
+        ESCAPED_ASTERISK, ESCAPED_QUESTION_MARK, ESCAPED_CHAR_CLASS_START
+    ) = range(10)
 
     def __init__(self, type, content):
         self._type = type
@@ -96,62 +112,95 @@ class Lexer(object):
         return self
 
     def __next__(self):
-        char = self._peek()
-        if self._match(char, None):
+        if self._expect(None):
             return None
-        if self._match(char, ASTERISK):
-            return self._handleAsterisk()
-        if self._match(char, QUESTION_MARK):
-            return self._handleQuestionMark()
-        if self._match(char, CHAR_CLASS_START):
-            return self._handleCharClass()
+        if self._accept(SLASH):
+            return self._slash()
+        if self._accept(ESCAPE):
+            return self._escape()
+        if self._accept(ASTERISK):
+            return self._asterisk()
+        if self._accept(QUESTION_MARK):
+            return self._questionMark()
+        if self._accept(CHAR_CLASS_START):
+            return self._charClass()
 
-        return self._handleText()
+        return self._text()
 
-    def _handleAsterisk(self):
-        self._read()
-        if self._match(self._peek(), ASTERISK):
-            self._read()
+    def _slash(self):
+        return self._token(Token.SLASH)
 
+    def _escape(self):
+        if self._accept(ASTERISK):
+            return self._escapedAsterisk()
+        if self._accept(QUESTION_MARK):
+            return self._escapedQuestionMark()
+        if self._accept(CHAR_CLASS_START):
+            return self._escapedCharClassStart()
+
+        return self._token(Token.ESCAPE)
+
+    def _escapedAsterisk(self):
+        return self._token(Token.ESCAPED_ASTERISK)
+
+    def _escapedQuestionMark(self):
+        return self._token(Token.ESCAPED_QUESTION_MARK)
+
+    def _escapedCharClassStart(self):
+        return self._token(Token.ESCAPED_CHAR_CLASS_START)
+
+    def _asterisk(self):
+        if self._accept(ASTERISK):
             return self._token(Token.MATCH_ALL)
 
         return self._token(Token.MATCH_MULTIPLE)
 
-    def _handleQuestionMark(self):
-        self._read()
-
+    def _questionMark(self):
         return self._token(Token.MATCH_ONE)
 
-    def _handleCharClass(self):
-        self._read(2)
+    def _charClass(self):
+        self._read()
 
-        char = self._peek()
-        while not self._match(char, None):
-            self._read()
-            if self._match(char, CHAR_CLASS_END):
+        while not self._expect(None):
+            if self._accept(CHAR_CLASS_END):
                 break
-            if self._match(char, ESCAPE):
-                if self._match(self._peek(), CHAR_CLASS_END):
-                    self._read()
-
-            char = self._peek()
+            if self._accept(ESCAPE):
+                self._charClassEscape()
+            else:
+                self._read()
 
         return self._token(Token.CHAR_CLASS)
 
-    def _handleText(self):
-        char = self._peek()
-        while not self._match(char, None):
-            if self._match(char, WILDCARD_START):
+    def _charClassEscape(self):
+        self._accept(CHAR_CLASS_END)
+
+    def _text(self):
+        while not self._expect(None):
+            if self._expect(NOT_TEXT):
                 break
 
             self._read()
-            if self._match(char, ESCAPE):
-                if self._match(self._peek(), WILDCARD_START):
-                    self._read()
-
-            char = self._peek()
 
         return self._token(Token.TEXT)
+
+    def _expect(self, char, offset = 0):
+        return self._match(self._peek(offset), char)
+
+    def _accept(self, char):
+        if not self._expect(char):
+            return False
+
+        self._read()
+
+        return True
+
+    def _match(self, left, right):
+        if right is None:
+            return left is None
+        if left is None:
+            return right is None
+
+        return left in right
 
     def _peek(self, offset = 0):
         return self._charBuffer.peek(offset)
@@ -167,14 +216,6 @@ class Lexer(object):
 
         return content
 
-    def _match(self, left, right):
-        if right is None:
-            return left is None
-        if left is None:
-            return right is None
-
-        return left in right
-
     def _token(self, type):
         tokenContent = self._tokenContent
         self._tokenContent = ""
@@ -184,48 +225,183 @@ class Lexer(object):
 class Parser(object):
     def __init__(self, lexer):
         self._lexer = PeekableDecorator(lexer)
-        self._re = ""
 
-    @property
-    def re(self):
+        self._regex = ""
+        self._root = False
+        self._folder = None
+
+    def filter(self, filterClass):
         self._pattern()
+        if not self._expect(None):
+            raise Error("Unexpected token: " + self._read())
 
-        return re.compile(self._re)
+        if self._root:
+            self._regex = "^" + self._regex
+        else:
+            self._regex = ".*" + self._regex + "$"
+
+        regex = re.compile(self._regex)
+
+        return filterClass(regex, self._folder)
 
     def _pattern(self):
-        token = self._lexer.peek()
-        while token is not None:
-            if (token.type == Token.MATCH_ALL):
-                self._matchAll()
-            elif (token.type == Token.MATCH_MULTIPLE):
-                self._matchMultiple()
-            elif (token.type == Token.MATCH_ONE):
-                self._matchOne()
-            elif (token.type == Token.CHAR_CLASS):
-                self._charClass()
-            elif (token.type == Token.TEXT):
-                self._text()
-            else:
-                raise Error("Unexpected token: " + token)
+        self._leadingSlash()
+        self._patternContent()
+        self._trailingSlash()
 
-            token = self._lexer.peek()
+    def _leadingSlash(self):
+        if self._expect(Token.SLASH):
+            token = self._read()
+            self._root = True
 
-    def _matchAll(self):
-        token = next(self._lexer)
-        self._re += ".*"
+            return True
 
-    def _matchMultiple(self):
-        token = next(self._lexer)
-        self._re += "[^/]*"
+        return False
 
-    def _matchOne(self):
-        token = next(self._lexer)
-        self._re += "[^/]"
+    def _patternContent(self):
+        while (self._patternContentSlash()
+               or self._escapedPatternContent()
+               or self._wildcard()
+               or self._text()):
+            pass
 
-    def _charClass(self):
-        token = next(self._lexer)
-        self._re += token.content
+        return True
+
+    def _trailingSlash(self):
+        if self._expect(Token.SLASH):
+            token = self._read()
+            self._folder = True
+
+            return True
+
+        return False
+
+    def _patternContentSlash(self):
+        if self._expect(Token.SLASH):
+            token = self._read()
+
+            if self._expect(Token.SLASH):
+                return False
+
+            self._regex += token.content
+
+            return True
+
+        return False
+
+    def _escapedPatternContent(self):
+        if self._escapedWildcardStart():
+            return True
+        if self._expect(Token.ESCAPE):
+            token = self._read()
+            self._regex += re.escape(token.content)
+
+            return True
+
+        return False
+
+    def _wildcard(self):
+        if self._matchAll():
+            return True
+        if self._matchMultiple():
+            return True
+        if self._matchOne():
+            return True
+        if self._charClass():
+            return True
+
+        return False
 
     def _text(self):
-        token = next(self._lexer)
-        self._re += re.escape(token.content)
+        if self._expect(Token.TEXT):
+            token = self._read()
+            self._regex += re.escape(token.content)
+
+            return True
+
+        return False
+
+    def _escapedWildcardStart(self):
+        if self._escapedAsterisk():
+            return True
+        if self._escapedQuestionMark():
+            return True
+        if self._escapedCharClassStart():
+            return True
+
+        return False
+
+    def _escapedAsterisk(self):
+        if self._expect(Token.ESCAPED_ASTERISK):
+            token = self._read()
+            self._regex += re.escape(ASTERISK)
+
+            return True
+
+        return False
+
+    def _escapedQuestionMark(self):
+        if self._expect(Token.ESCAPED_QUESTION_MARK):
+            token = self._read()
+            self._regex += re.escape(QUESTION_MARK)
+
+            return True
+
+        return False
+
+    def _escapedCharClassStart(self):
+        if self._expect(Token.ESCAPED_CHAR_CLASS_START):
+            token = self._read()
+            self._regex += re.escape(CHAR_CLASS_START)
+
+            return True
+
+        return False
+
+    def _matchAll(self):
+        if self._expect(Token.MATCH_ALL):
+            token = self._read()
+            self._regex += ".*"
+
+            return True
+
+        return False
+
+    def _matchMultiple(self):
+        if self._expect(Token.MATCH_MULTIPLE):
+            token = self._read()
+            self._regex += "[^/]*"
+
+            return True
+
+        return False
+
+    def _matchOne(self):
+        if self._expect(Token.MATCH_ONE):
+            token = self._read()
+            self._regex += "[^/]"
+
+            return True
+
+        return False
+
+    def _charClass(self):
+        if self._expect(Token.CHAR_CLASS):
+            token = self._read()
+            self._regex += token.content
+
+            return True
+
+        return False
+
+    def _expect(self, tokenType, offset = 0):
+        return self._match(self._lexer.peek(offset), tokenType)
+
+    def _match(self, token, tokenType):
+        if token is None:
+            return tokenType is None
+
+        return token.type == tokenType
+
+    def _read(self):
+        return next(self._lexer, None)

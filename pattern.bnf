@@ -1,0 +1,44 @@
+(* Symbols *)
+
+slash symbol = "/";
+escape symbol = "\";
+asterisk symbol = "*";
+question mark symbol = "?";
+char class start symbol = "[";
+char class end symbol = "]";
+
+text: {text content};
+text content: -(slash symbol
+              | escape symbol
+              | asterisk symbol
+              | question mark symbol
+              | char class start symbol);
+
+char class = char class start symbol, character, char class content, char class end symbol;
+char class content = {escaped char class content | regular char class content};
+escaped char class content = escaped char class end | escape symbol;
+regular char class content: -(escape symbol | char class end symbol);
+
+escaped char class end = escape symbol, char class end symbol;
+
+(* Rules *)
+
+pattern = [leading slash], [pattern content], [trailing slash];
+
+leading slash = slash symbol;
+pattern content = {pattern content slash | escaped pattern content | wildcard | text};
+trailing slash = slash symbol;
+
+pattern content slash = slash symbol;
+escaped pattern content = escaped wildcard start | escape symbol;
+wildcard = match all | match multiple | match one | char class;
+
+escaped wildcard start = escaped asterisk | escaped question mark | escaped char class start;
+
+match all = asterisk symbol, asterisk symbol;
+match multiple = asterisk symbol;
+match one = question mark symbol;
+
+escaped asterisk = escape symbol, asterisk symbol;
+escaped question mark = escape symbol, question mark symbol;
+escaped char class start = escape symbol, char class start symbol;

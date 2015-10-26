@@ -16,6 +16,7 @@
 # limitations under the License.
 
 import filter
+import pattern
 
 import argparse
 import os.path
@@ -49,10 +50,6 @@ parser.add_argument('--delete', action = 'store_true',
         help = 'delete duplicate and extraneous files from dest dirs')
 parser.add_argument('--delete-excluded', action = 'store_true', dest = 'deleteExcluded',
         help = 'also delete excluded files from dest dirs')
-parser.add_argument('-n', '--dry-run', action = 'store_true', dest = 'dryRun',
-        help = 'perform a trial run with no changes made')
-parser.add_argument('-r', '--recursive', action = 'store_true',
-        help = 'recurse into directories')
 
 class FilterAction(argparse.Action):
     def __init__(self, option_strings, dest, nargs = None, **kwargs):
@@ -66,34 +63,57 @@ class FilterAction(argparse.Action):
         if filters is None:
             filters = []
 
-        regex = re.compile(values)
-        filter = self.filter(regex)
+        filter = self.filter(values)
         filters.append(filter)
 
         setattr(namespace, self.dest, filters)
 
-    def filter(self, re):
+    def filter(self, value):
         raise NotImplementedError()
 
 class ExcludeAction(FilterAction):
     def __init__(self, option_strings, dest, nargs = None, **kwargs):
         super().__init__(option_strings, dest, **kwargs)
 
-    def filter(self, re):
-        return filter.Exclude(re)
+    def filter(self, value):
+        return pattern.filter(value, filter.Exclude)
 
 class IncludeAction(FilterAction):
     def __init__(self, option_strings, dest, nargs = None, **kwargs):
         super().__init__(option_strings, dest, **kwargs)
 
-    def filter(self, re):
-        return filter.Include(re)
+    def filter(self, value):
+        return pattern.filter(value, filter.Include)
 
-parser.add_argument('--rexclude', action = ExcludeAction, dest = 'filters',
+class RegexExcludeAction(FilterAction):
+    def __init__(self, option_strings, dest, nargs = None, **kwargs):
+        super().__init__(option_strings, dest, **kwargs)
+
+    def filter(self, value):
+        regex = re.compile(value)
+        return filter.Exclude(regex)
+
+class RegexIncludeAction(FilterAction):
+    def __init__(self, option_strings, dest, nargs = None, **kwargs):
+        super().__init__(option_strings, dest, **kwargs)
+
+    def filter(self, value):
+        regex = re.compile(value)
+        return filter.Include(regex)
+
+parser.add_argument('--exclude', action = ExcludeAction, dest = 'filters',
+        help = 'exclude files matching PATTERN', metavar = 'PATTERN')
+parser.add_argument('--include', action = IncludeAction, dest = 'filters',
+        help = 'don\'t exclude files matching PATTERN', metavar = 'PATTERN')
+parser.add_argument('--rexclude', action = RegexExcludeAction, dest = 'filters',
         help = 'exclude files matching REGEX', metavar = 'REGEX')
-parser.add_argument('--rinclude', action = IncludeAction, dest = 'filters',
+parser.add_argument('--rinclude', action = RegexIncludeAction, dest = 'filters',
         help = 'don\'t exclude files matching REGEX', metavar = 'REGEX')
 
+parser.add_argument('-n', '--dry-run', action = 'store_true', dest = 'dryRun',
+        help = 'perform a trial run with no changes made')
+parser.add_argument('-r', '--recursive', action = 'store_true',
+        help = 'recurse into directories')
 parser.add_argument('-S', '--save-credentials', action = 'store_true', dest = 'saveCredentials',
         help = 'save credentials for future re-use')
 parser.add_argument('-u', '--update', action = 'store_true',
