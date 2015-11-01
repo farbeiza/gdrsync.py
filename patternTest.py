@@ -59,53 +59,30 @@ class LexerTestCase(unittest.TestCase):
     def testText(self):
         self._testSingle(TEXT_TEST, pattern.Token.TEXT)
 
-    def _testSingle(self, string, tokenType):
-        lexer = pattern.Lexer(string)
+    def _testSingle(self, value, tokenType):
+        if type(value) is not str:
+            for part in value:
+                self._testSingle(part, tokenType)
+
+            return
+
+        lexer = pattern.Lexer(value)
 
         token = next(lexer)
         self.assertEqual(token.type, tokenType)
-        self.assertEqual(token.content, string)
+        self.assertEqual(token.content, value)
 
         token = next(lexer)
         self.assertEqual(token, None)
 
-    def testSlash(self):
-        self._testSingle(pattern.SLASH, pattern.Token.SLASH)
-
-    def testMatchAll(self):
-        string = pattern.ASTERISK + pattern.ASTERISK
-        self._testSingle(string, pattern.Token.MATCH_ALL)
-
-    def testMatchMultiple(self):
-        self._testSingle(pattern.ASTERISK, pattern.Token.MATCH_MULTIPLE)
-
-    def testMatchOne(self):
-        self._testSingle(pattern.QUESTION_MARK, pattern.Token.MATCH_ONE)
-
-    def testCharClass(self):
-        for charClassTest in CHAR_CLASS_TESTS:
-            self._testSingle(charClassTest, pattern.Token.CHAR_CLASS)
-
-    def testEscape(self):
-        self._testSingle(escape(), pattern.Token.ESCAPE)
-
-    def testEscapedAsterisk(self):
-        self._testSingle(escape(pattern.ASTERISK), pattern.Token.ESCAPED_ASTERISK)
-
-    def testEscapedQuestionMark(self):
-        self._testSingle(escape(pattern.QUESTION_MARK), pattern.Token.ESCAPED_QUESTION_MARK)
-
-    def testEscapedCharClassStart(self):
-        self._testSingle(escape(pattern.CHAR_CLASS_START), pattern.Token.ESCAPED_CHAR_CLASS_START)
+    def testTokens(self):
+        for (tokenType, value) in MULTIPLE_TEST_CASES.items():
+            self._testSingle(value, tokenType)
 
     def testMultiple(self):
         string = TEXT_TEST
         for value in MULTIPLE_TEST_CASES.values():
-            if type(value) is str:
-                string = self._addToken(string, value)
-            else:
-                for part in value:
-                    string = self._addToken(string, part)
+            string = self._addToken(string, value)
 
         lexer = pattern.Lexer(string)
 
@@ -114,23 +91,28 @@ class LexerTestCase(unittest.TestCase):
         self.assertEqual(token.content, TEXT_TEST)
 
         for (tokenType, value) in MULTIPLE_TEST_CASES.items():
-            if type(value) is str:
-                self._assertToken(lexer, value, tokenType)
-            else:
-                for part in value:
-                    self._assertToken(lexer, part, tokenType)
+            self._assertToken(lexer, value, tokenType)
 
         token = next(lexer)
         token = next(lexer)
         self.assertEqual(token, None)
 
     def _addToken(self, string, value):
-        string += value
-        string += TEXT_TEST
+        if type(value) is not str:
+            for part in value:
+                string = self._addToken(string, part)
 
-        return string
+            return string
+
+        return string + value + TEXT_TEST
 
     def _assertToken(self, lexer, value, tokenType):
+        if type(value) is not str:
+            for part in value:
+                self._assertToken(lexer, part, tokenType)
+
+            return
+
         token = next(lexer)
         self.assertEqual(token.type, tokenType)
         self.assertEqual(token.content, value)
