@@ -14,20 +14,28 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import filter
 import pattern
 
 import unittest
 
-CHAR_CLASS_TEST = (pattern.CHAR_CLASS_START
-                   + pattern.CHAR_CLASS_END
-                   + "a"
-                   + pattern.SLASH
-                   + pattern.ESCAPE
-                   + pattern.ASTERISK + pattern.ASTERISK
-                   + pattern.QUESTION_MARK
-                   + pattern.ESCAPE + pattern.CHAR_CLASS_END
-                   + "b c"
-                   + pattern.CHAR_CLASS_END)
+def escape(string = ""):
+    return pattern.ESCAPE + string
+
+def charClass(string = ""):
+    return pattern.CHAR_CLASS_START + string + pattern.CHAR_CLASS_END
+
+CHAR_CLASS_TESTS = [charClass(pattern.CHAR_CLASS_END
+                              + "a"
+                              + pattern.SLASH
+                              + escape()
+                              + "b"
+                              + pattern.ASTERISK + pattern.ASTERISK
+                              + pattern.QUESTION_MARK
+                              + pattern.CHAR_CLASS_START
+                              + escape(pattern.CHAR_CLASS_END)
+                              + "c"),
+                    charClass(escape())]
 
 TEXT_TEST = "a_b-c#d@"
 
@@ -36,11 +44,11 @@ MULTIPLE_TEST_CASES = {
     pattern.Token.MATCH_ALL: pattern.ASTERISK + pattern.ASTERISK,
     pattern.Token.MATCH_MULTIPLE: pattern.ASTERISK,
     pattern.Token.MATCH_ONE: pattern.QUESTION_MARK,
-    pattern.Token.CHAR_CLASS: CHAR_CLASS_TEST,
-    pattern.Token.ESCAPE: pattern.ESCAPE,
-    pattern.Token.ESCAPED_ASTERISK: pattern.ESCAPE + pattern.ASTERISK,
-    pattern.Token.ESCAPED_QUESTION_MARK: pattern.ESCAPE + pattern.QUESTION_MARK,
-    pattern.Token.ESCAPED_CHAR_CLASS_START: pattern.ESCAPE + pattern.CHAR_CLASS_START
+    pattern.Token.CHAR_CLASS: CHAR_CLASS_TESTS,
+    pattern.Token.ESCAPE: escape(),
+    pattern.Token.ESCAPED_ASTERISK: escape(pattern.ASTERISK),
+    pattern.Token.ESCAPED_QUESTION_MARK: escape(pattern.QUESTION_MARK),
+    pattern.Token.ESCAPED_CHAR_CLASS_START: escape(pattern.CHAR_CLASS_START)
 }
 
 ESCAPED_TEST_CASES = [pattern.ASTERISK,
@@ -75,26 +83,29 @@ class LexerTestCase(unittest.TestCase):
         self._testSingle(pattern.QUESTION_MARK, pattern.Token.MATCH_ONE)
 
     def testCharClass(self):
-        self._testSingle(CHAR_CLASS_TEST, pattern.Token.CHAR_CLASS)
+        for charClassTest in CHAR_CLASS_TESTS:
+            self._testSingle(charClassTest, pattern.Token.CHAR_CLASS)
 
     def testEscape(self):
-        self._testSingle(pattern.ESCAPE, pattern.Token.ESCAPE)
+        self._testSingle(escape(), pattern.Token.ESCAPE)
 
     def testEscapedAsterisk(self):
-        self._testSingle(pattern.ESCAPE + pattern.ASTERISK, pattern.Token.ESCAPED_ASTERISK)
+        self._testSingle(escape(pattern.ASTERISK), pattern.Token.ESCAPED_ASTERISK)
 
     def testEscapedQuestionMark(self):
-        self._testSingle(pattern.ESCAPE + pattern.QUESTION_MARK, pattern.Token.ESCAPED_QUESTION_MARK)
+        self._testSingle(escape(pattern.QUESTION_MARK), pattern.Token.ESCAPED_QUESTION_MARK)
 
     def testEscapedCharClassStart(self):
-        self._testSingle(pattern.ESCAPE + pattern.CHAR_CLASS_START,
-                         pattern.Token.ESCAPED_CHAR_CLASS_START)
+        self._testSingle(escape(pattern.CHAR_CLASS_START), pattern.Token.ESCAPED_CHAR_CLASS_START)
 
     def testMultiple(self):
         string = TEXT_TEST
         for value in MULTIPLE_TEST_CASES.values():
-            string += value
-            string += TEXT_TEST
+            if type(value) is str:
+                string = self._addToken(string, value)
+            else:
+                for part in value:
+                    string = self._addToken(string, part)
 
         lexer = pattern.Lexer(string)
 
@@ -102,17 +113,31 @@ class LexerTestCase(unittest.TestCase):
         self.assertEqual(token.type, pattern.Token.TEXT)
         self.assertEqual(token.content, TEXT_TEST)
 
-        for (type, value) in MULTIPLE_TEST_CASES.items():
-            token = next(lexer)
-            self.assertEqual(token.type, type)
-            self.assertEqual(token.content, value)
-
-            token = next(lexer)
-            self.assertEqual(token.type, pattern.Token.TEXT)
-            self.assertEqual(token.content, TEXT_TEST)
+        for (tokenType, value) in MULTIPLE_TEST_CASES.items():
+            if type(value) is str:
+                self._assertToken(lexer, value, tokenType)
+            else:
+                for part in value:
+                    self._assertToken(lexer, part, tokenType)
 
         token = next(lexer)
+        token = next(lexer)
         self.assertEqual(token, None)
+
+    def _addToken(self, string, value):
+        string += value
+        string += TEXT_TEST
+
+        return string
+
+    def _assertToken(self, lexer, value, tokenType):
+        token = next(lexer)
+        self.assertEqual(token.type, tokenType)
+        self.assertEqual(token.content, value)
+
+        token = next(lexer)
+        self.assertEqual(token.type, pattern.Token.TEXT)
+        self.assertEqual(token.content, TEXT_TEST)
 
 class ParserTestCase(unittest.TestCase):
     def testText(self):
@@ -121,8 +146,8 @@ class ParserTestCase(unittest.TestCase):
                    notMatch = [])
 
     def testEscape(self):
-        escaped = pattern.ESCAPE + pattern.ESCAPE.join(ESCAPED_TEST_CASES) + pattern.ESCAPE
-        notEscaped = "".join(ESCAPED_TEST_CASES) + pattern.ESCAPE
+        escaped = escape() + escape().join(ESCAPED_TEST_CASES) + escape()
+        notEscaped = "".join(ESCAPED_TEST_CASES) + escape()
 
         self._test(escaped,
                    match = [notEscaped],
@@ -173,16 +198,13 @@ class ParserTestCase(unittest.TestCase):
                    notMatch = ["foo//bar", "foo///bar", "foo/baz/bar", "foo/baz/qux/bar"])
 
     def testCharClass(self):
-        self._test(self._charClass("fo") + self._charClass("fo") + self._charClass("fo"),
+        self._test(charClass("fo") + charClass("fo") + charClass("fo"),
                    match = ["foo"],
                    notMatch = ["foo/bar"])
 
-        self._test("foo" + self._charClass("abz") + "bar",
+        self._test("foo" + charClass("abz") + "bar",
                    match = ["foobbar", "fooabar", "foozbar"],
                    notMatch = ["foo/bar", "foo_bar"])
-
-    def _charClass(self, string):
-        return pattern.CHAR_CLASS_START + string + pattern.CHAR_CLASS_END
 
     def _test(self, patternString, match = [], notMatch = []):
         for string in match:
@@ -193,7 +215,8 @@ class ParserTestCase(unittest.TestCase):
     def _testSingle(self, patternString, string, expected):
         lexer = pattern.Lexer(patternString)
         parser = pattern.Parser(lexer)
-        regex = parser.regex
+        include = parser.filter(filter.Include)
+        regex = include._regex
 
         actual = regex.match(string) is not None
         self.assertEqual(actual, expected,
