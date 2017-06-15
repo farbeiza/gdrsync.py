@@ -25,7 +25,7 @@ US = MS * MS # microseconds / second
 DATE_TIME_PARSE_FORMAT = '%Y-%m-%dT%H:%M:%S.%fZ'
 
 DATE_TIME_PRINT_FORMAT = '%Y-%m-%dT%H:%M:%S'
-MILLIS_OF_SECOND_PRINT_FORMAT = '.%sZ'
+MILLIS_OF_SECOND_PRINT_FORMAT = '.%03dZ'
 
 # INVALID_MILLIS is a special value used in Google Drive for empty Dates
 INVALID_MILLIS = 0
