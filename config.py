@@ -18,9 +18,10 @@ import configparser
 import logging
 import os
 
-APPLICATION_NAME = 'gdrsync.py'
-CONFIG_FILE_NAME = '.' + APPLICATION_NAME
-CONFIG_FILE = os.path.expanduser(os.path.join('~', CONFIG_FILE_NAME))
+APPLICATION_NAME = 'gdrsync'
+CONFIG_DIR = os.path.expanduser(os.path.join('~', '.config', APPLICATION_NAME))
+CONFIG_FILE_NAME = 'config.ini'
+CONFIG_FILE = os.path.join(CONFIG_DIR, CONFIG_FILE_NAME)
 
 PARSER = configparser.SafeConfigParser()
 PARSER.read(CONFIG_FILE)
@@ -43,5 +44,7 @@ def set(option, value):
 
 def save():
     LOGGER.info('Saving config file %s...', CONFIG_FILE)
+    os.makedirs(CONFIG_DIR, exist_ok=True)
+
     with open(CONFIG_FILE, 'w') as file:
         PARSER.write(file)

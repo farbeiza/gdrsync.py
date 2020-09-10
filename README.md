@@ -8,15 +8,11 @@ Simple rsync utility for Google Drive.
 
 ### Google APIs Client Library for Python
 
-You can install it using easy_install:
+You can install it using pip:
 
-    $ easy_install --upgrade google-api-python-client
+    $ pip install --upgrade google-api-python-client google-auth-httplib2 google-auth-oauthlib
 
-or pip:
-
-    $ pip install --upgrade google-api-python-client
-
-More information [here](https://developers.google.com/api-client-library/python/start/installation)
+More information [here](https://developers.google.com/docs/api/quickstart/python#step_2_install_the_google_client_library)
 
 ## Installation
 
@@ -32,13 +28,12 @@ line to:
 
 ## Configuration
 
-Gdrsync.py will read some configuration options from the file `.gdrsync.py` in
+Gdrsync.py will read some configuration options from the file `.config/gdrsync/config.ini` in
 the user's home directory, if it exists.
 
     [gdrsync]
     clientId = xxxxxxxx
     clientSecret = xxxxxxxx
-    refreshToken = xxxxxxxx
 
 ### clientId, clientSecret
 
@@ -51,10 +46,3 @@ prevent reaching those limits using the shared default access information.
 To do so, sign up into
 [Google API console](http://code.google.com/apis/console), and create a new
 `Client ID for installed applications` in the `API access` section.
-
-### refreshToken
-
-Token for user authentication.
-
-Gdrsync.py will write this option if called using the command line argument
-`-S`.

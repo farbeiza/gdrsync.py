@@ -114,8 +114,10 @@ parser.add_argument('-n', '--dry-run', action = 'store_true', dest = 'dryRun',
         help = 'perform a trial run with no changes made')
 parser.add_argument('-r', '--recursive', action = 'store_true',
         help = 'recurse into directories')
-parser.add_argument('-S', '--save-credentials', action = 'store_true', dest = 'saveCredentials',
-        help = 'save credentials for future re-use')
+parser.add_argument('-p', '--update-credentials', action = 'store_true', dest = 'updateCredentials',
+        help = 'update credentials')
+parser.add_argument('-P', '--ignore-credentials', action = 'store_true', dest = 'ignoreCredentials',
+        help = 'ignore existing credentials')
 parser.add_argument('-u', '--update', action = 'store_true',
         help = 'skip files that are newer on the receiver')
 parser.add_argument('-v', '--verbose', action='count', default = 0, dest = 'verbosity',
@@ -132,7 +134,6 @@ logging.basicConfig(format = '%(asctime)s: %(levelname)s: %(name)s: %(message)s'
         level = LOG_LEVEL)
 if args.verbosity < len(LOG_LEVELS):
     logging.getLogger('googleapiclient.discovery').setLevel(logging.WARNING)
-    logging.getLogger('oauth2client.client').setLevel(logging.ERROR)
 
 import binaryunit
 import downloadmanager
@@ -154,7 +155,8 @@ class GDRsync(object):
     def __init__(self, args):
         self.args = args
 
-        drive = driveutils.drive(self.args.saveCredentials)
+        drive = driveutils.drive(updateCredentials = self.args.updateCredentials,
+                                 ignoreCredentials = self.args.ignoreCredentials)
 
         self.sourceLocations = [location.create(url) for url in self.args.sourceUrls]
         self.destLocation = location.create(self.args.destUrl)
@@ -316,7 +318,7 @@ class GDRsync(object):
 
                 output.addChild(destFile)
             except FileNotFoundError as error:
-                LOGGER.warn('%s: No such file or directory.', sourceFile.location)
+                LOGGER.warning('%s: No such file or directory.', sourceFile.location)
 
         return output
 

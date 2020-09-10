@@ -5,7 +5,7 @@ set -x
 DIR="$(dirname "${0}")"
 GDRSYNC="${DIR}/../gdrsync.py"
 
-"${GDRSYNC}" -vv -Lr --delete "${DIR}/remote/" gdrive:///test
+python "${GDRSYNC}" -vv -Lr --delete "${DIR}/remote/" gdrive:///test
 
 find "${DIR}/local" | xargs touch -h -d '1978-03-08 01:23:45.6789987Z'
 touch -d '1978-03-08 01:23:45.001234Z' "${DIR}/local/singleDigitMilliseconds"
