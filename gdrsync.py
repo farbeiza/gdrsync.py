@@ -438,7 +438,7 @@ class GDRsync(object):
         return self.transferManager.updateFile(sourceFile, destFile)
 
     def touch(self, sourceFile, destFile):
-        LOGGER.info('%s: Updating modified date... (Checked %d/%d files)',
+        LOGGER.info('%s: Updating modified time... (Checked %d/%d files)',
                 destFile.location, self.summary.checkedFiles, self.summary.totalFiles)
         if self.args.dryRun:
             return destFile

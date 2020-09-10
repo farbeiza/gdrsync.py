@@ -25,6 +25,7 @@ import time
 import logging
 
 DEFAULT_MIME_TYPE = 'application/octet-stream'
+READ_ONLY_FIELDS = ['id', 'createdTime', 'parents', 'md5Checksum', 'size']
 
 LOGGER = logging.getLogger(__name__)
 
@@ -36,14 +37,16 @@ class UploadManager(remotedestmanager.RemoteDestManager):
 
     def insertFile(self, sourceFile, destinationFile):
         def createRequest(body, media):
-            return (self._drive.files().insert(body = body, media_body = media,
+            LOGGER.debug('Inserting %s...', body)
+
+            return (self._drive.files().create(body = body, media_body = media,
                     fields = driveutils.FIELDS))
 
         return self._copyFile(sourceFile, destinationFile, createRequest)
 
     def _copyFile(self, sourceFile, destinationFile, createRequest):
         body = destinationFile.delegate.copy()
-        body['modifiedDate'] = str(sourceFile.modified)
+        body['modifiedTime'] = str(sourceFile.modified)
 
         (mimeType, encoding) = mimetypes.guess_type(sourceFile.location.path)
         if mimeType is None:
@@ -88,9 +91,13 @@ class UploadManager(remotedestmanager.RemoteDestManager):
 
     def updateFile(self, sourceFile, destinationFile):
         def createRequest(body, media):
+            for field in READ_ONLY_FIELDS:
+                body.pop(field, None)
+
+            LOGGER.debug('Updating %s...', body)
+
             return (self._drive.files()
                     .update(fileId = destinationFile.delegate['id'], body = body,
-                            media_body = media, setModifiedDate = True,
-                            fields = driveutils.FIELDS))
+                            media_body = media, fields = driveutils.FIELDS))
 
         return self._copyFile(sourceFile, destinationFile, createRequest)

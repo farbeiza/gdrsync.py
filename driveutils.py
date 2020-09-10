@@ -29,7 +29,7 @@ import re
 
 TIMEOUT = 60 # seconds
 
-FIELDS = 'id, title, mimeType, createdDate, modifiedDate, parents, md5Checksum, fileSize'
+FIELDS = 'id, name, mimeType, createdTime, modifiedTime, parents, md5Checksum, size'
 
 CREDENTIALS_FILE_NAME = 'credentials.pickle'
 CREDENTIALS_FILE = os.path.join(config.CONFIG_DIR, CREDENTIALS_FILE_NAME)
@@ -52,7 +52,7 @@ def drive(updateCredentials = False, ignoreCredentials = False):
     credentials = createCredentials(updateCredentials = updateCredentials,
                                     ignoreCredentials = ignoreCredentials)
 
-    return googleapiclient.discovery.build('drive', 'v2', credentials = credentials,
+    return googleapiclient.discovery.build('drive', 'v3', credentials = credentials,
                                            cache_discovery = False)
 
 def createCredentials(updateCredentials = False, ignoreCredentials = False):

@@ -27,11 +27,11 @@ import urllib.parse
 
 SCHEME = 'gdrive'
 
-CHILDREN_QUERY = '(\'%(parents)s\' in parents) and (not trashed)'
-CHILDREN_FIELDS = 'nextPageToken, items(%s)' % driveutils.FIELDS
+CHILDREN_QUERY = '(\'%(parentId)s\' in parents) and (not trashed)'
+CHILDREN_FIELDS = 'nextPageToken, files(%s)' % driveutils.FIELDS
 
-# https://developers.google.com/drive/v2/reference/files/list#maxResults
-LIST_MAX_RESULTS = 1000
+# https://developers.google.com/drive/api/v3/reference/files/list#pageSize
+LIST_PAGE_SIZE = 1000
 
 class RemoteFolder(folder.Folder):
     def withoutChildren(self):
@@ -43,14 +43,14 @@ class RemoteFolder(folder.Folder):
     def createFile(self, name, folder = None, mimeType = None):
         folder = utils.firstNonNone(folder, False)
 
-        file = {'title': name}
+        file = {'name': name}
         if mimeType is None:
             if folder:
                 file['mimeType'] = remotefile.MIME_FOLDER
         else:
             file['mimeType'] = mimeType
 
-        file['parents'] = [{'id': self.file.delegate.get('id')}]
+        file['parents'] = [self.file.delegate.get('id')]
 
         return remotefile.fromParent(self.file, file)
 
@@ -77,18 +77,17 @@ class Factory(folder.Factory):
 
             return self.create(remoteFileFactory.create(file))
 
-        query = CHILDREN_QUERY % {'parents': file.delegate['id']}
+        query = CHILDREN_QUERY % {'parentId': file.delegate['id']}
         def request():
             remoteFolder = RemoteFolder(file)
 
             pageToken = None
             while True:
-                list = (self._drive.files().list(q = query,
-                        fields = CHILDREN_FIELDS, pageToken = pageToken,
-                        maxResults = LIST_MAX_RESULTS))
+                list = (self._drive.files().list(q = query, fields = CHILDREN_FIELDS,
+                                                 pageToken = pageToken, pageSize = LIST_PAGE_SIZE))
 
                 files = list.execute()
-                for child in files['items']:
+                for child in files['files']:
                     remoteFolder.addChild(remotefile.fromParent(file, child))
 
                 pageToken = files.get('nextPageToken')

@@ -50,8 +50,8 @@ class TransferManager(object):
         summary.addCopiedSize(size)
         summary.addCopiedTime(elapsed)
 
-    def logEnd(self, location, elapsed, fileSize, copiedFiles):
-        logMessage = self._logMessage(location, elapsed, fileSize, 1)
+    def logEnd(self, location, elapsed, size, copiedFiles):
+        logMessage = self._logMessage(location, elapsed, size, 1)
 
         LOGGER.info('%s #%d', logMessage, copiedFiles)
 
