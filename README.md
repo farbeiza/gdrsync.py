@@ -10,7 +10,7 @@ Simple rsync utility for Google Drive.
 
 You can install it using pip:
 
-    $ pip install --upgrade google-api-python-client google-auth-httplib2 google-auth-oauthlib
+    $ pip install --upgrade --requirement requirements.txt
 
 More information [here](https://developers.google.com/docs/api/quickstart/python#step_2_install_the_google_client_library)
 
