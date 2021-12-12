@@ -14,16 +14,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import unittest
+
 import filter
 import pattern
 
-import unittest
 
-def escape(string = ""):
+def escape(string=""):
     return pattern.ESCAPE + string
 
-def charClass(string = ""):
+
+def charClass(string=""):
     return pattern.CHAR_CLASS_START + string + pattern.CHAR_CLASS_END
+
 
 CHAR_CLASS_TESTS = [charClass(pattern.CHAR_CLASS_END
                               + "a"
@@ -54,6 +57,7 @@ MULTIPLE_TEST_CASES = {
 ESCAPED_TEST_CASES = [pattern.ASTERISK,
                       pattern.QUESTION_MARK,
                       pattern.CHAR_CLASS_START]
+
 
 class LexerTestCase(unittest.TestCase):
     def testText(self):
@@ -121,74 +125,75 @@ class LexerTestCase(unittest.TestCase):
         self.assertEqual(token.type, pattern.Token.TEXT)
         self.assertEqual(token.content, TEXT_TEST)
 
+
 class ParserTestCase(unittest.TestCase):
     def testText(self):
         self._test(TEXT_TEST,
-                   match = [TEXT_TEST],
-                   notMatch = [])
+                   match=[TEXT_TEST],
+                   notMatch=[])
 
     def testEscape(self):
         escaped = escape() + escape().join(ESCAPED_TEST_CASES) + escape()
         notEscaped = "".join(ESCAPED_TEST_CASES) + escape()
 
         self._test(escaped,
-                   match = [notEscaped],
-                   notMatch = [escaped])
+                   match=[notEscaped],
+                   notMatch=[escaped])
 
     def testLeadingSlash(self):
         self._test(pattern.SLASH + "foo",
-                   match = ["foo", "foo/bar"],
-                   notMatch = ["bar/foo"])
+                   match=["foo", "foo/bar"],
+                   notMatch=["bar/foo"])
 
     def testMatchAll(self):
         self._test(pattern.ASTERISK + pattern.ASTERISK,
-                   match = ["foo", "foo/bar"],
-                   notMatch = [])
+                   match=["foo", "foo/bar"],
+                   notMatch=[])
 
         self._test("foo" + pattern.ASTERISK + pattern.ASTERISK + "bar",
-                   match = ["foobar", "foo/bar", "foobazbar", "foo/baz/bar"],
-                   notMatch = [])
+                   match=["foobar", "foo/bar", "foobazbar", "foo/baz/bar"],
+                   notMatch=[])
 
         self._test("foo/" + pattern.ASTERISK + pattern.ASTERISK + "/bar",
-                   match = ["foo//bar", "foo/baz/bar", "foo/baz/qux/bar"],
-                   notMatch = [])
+                   match=["foo//bar", "foo/baz/bar", "foo/baz/qux/bar"],
+                   notMatch=[])
 
     def testMatchMultiple(self):
         self._test(pattern.ASTERISK,
-                   match = ["foo", "foo/bar"],
-                   notMatch = [])
+                   match=["foo", "foo/bar"],
+                   notMatch=[])
 
         self._test("foo" + pattern.ASTERISK + "bar",
-                   match = ["foobar", "foobazbar"],
-                   notMatch = ["foo/bar", "foo/baz/bar"])
+                   match=["foobar", "foobazbar"],
+                   notMatch=["foo/bar", "foo/baz/bar"])
 
         self._test("foo/" + pattern.ASTERISK + "/bar",
-                   match = ["foo//bar", "foo/baz/bar"],
-                   notMatch = ["foo/baz/qux/bar"])
+                   match=["foo//bar", "foo/baz/bar"],
+                   notMatch=["foo/baz/qux/bar"])
 
     def testMatchOne(self):
         self._test(pattern.QUESTION_MARK,
-                   match = ["foo", "foo/bar"],
-                   notMatch = [])
+                   match=["foo", "foo/bar"],
+                   notMatch=[])
 
         self._test("foo" + pattern.QUESTION_MARK + "bar",
-                   match = ["foo_bar"],
-                   notMatch = ["foobar", "foo/bar"])
+                   match=["foo_bar"],
+                   notMatch=["foobar", "foo/bar"])
 
         self._test("foo/" + pattern.QUESTION_MARK + "/bar",
-                   match = ["foo/b/bar"],
-                   notMatch = ["foo//bar", "foo///bar", "foo/baz/bar", "foo/baz/qux/bar"])
+                   match=["foo/b/bar"],
+                   notMatch=["foo//bar", "foo///bar", "foo/baz/bar", "foo/baz/qux/bar"])
 
     def testCharClass(self):
         self._test(charClass("fo") + charClass("fo") + charClass("fo"),
-                   match = ["foo"],
-                   notMatch = ["foo/bar"])
+                   match=["foo"],
+                   notMatch=["foo/bar"])
 
         self._test("foo" + charClass("abz") + "bar",
-                   match = ["foobbar", "fooabar", "foozbar"],
-                   notMatch = ["foo/bar", "foo_bar"])
+                   match=["foobbar", "fooabar", "foozbar"],
+                   notMatch=["foo/bar", "foo_bar"])
 
-    def _test(self, patternString, match = [], notMatch = []):
+    def _test(self, patternString, match=[], notMatch=[]):
         for string in match:
             self._testSingle(patternString, string, True)
         for string in notMatch:
@@ -204,5 +209,6 @@ class ParserTestCase(unittest.TestCase):
         self.assertEqual(actual, expected,
                          "Pattern: /%s/, String: \"%s\"" % (patternString, string))
 
+
 if __name__ == '__main__':
-    unittest.main(verbosity = 2)
+    unittest.main(verbosity=2)

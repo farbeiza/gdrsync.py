@@ -30,17 +30,20 @@ SECTION = 'gdrsync'
 
 LOGGER = logging.getLogger(__name__)
 
+
 def get(option):
     if not PARSER.has_option(SECTION, option):
         return None
 
     return PARSER.get(SECTION, option)
 
+
 def set(option, value):
     if not PARSER.has_section(SECTION):
         PARSER.add_section(SECTION)
 
     PARSER.set(SECTION, option, value)
+
 
 def save():
     LOGGER.info('Saving config file %s...', CONFIG_FILE)

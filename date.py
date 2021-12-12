@@ -17,10 +17,9 @@
 import calendar
 import datetime
 import functools
-import math
 
-MS = 1000 # milliseconds / second
-US = MS * MS # microseconds / second
+MS = 1000  # milliseconds / second
+US = MS * MS  # microseconds / second
 
 DATE_TIME_PARSE_FORMAT = '%Y-%m-%dT%H:%M:%S.%fZ'
 
@@ -31,20 +30,24 @@ MILLIS_OF_SECOND_PRINT_FORMAT = '.%03dZ'
 INVALID_MILLIS = 0
 SUBSTITUTE_SECONDS = float(1) / MS
 
+
 def fromSeconds(seconds):
     return Date(seconds * MS)
+
 
 def fromString(string):
     dateTime = datetime.datetime.strptime(string, DATE_TIME_PARSE_FORMAT)
     seconds = (calendar.timegm(dateTime.timetuple())
-            + (float(dateTime.microsecond) / US))
+               + (float(dateTime.microsecond) / US))
     if seconds == SUBSTITUTE_SECONDS:
         return invalidDate()
 
     return fromSeconds(seconds)
 
+
 def invalidDate():
     return Date(INVALID_MILLIS)
+
 
 @functools.total_ordering
 class Date(object):

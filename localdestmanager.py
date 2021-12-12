@@ -14,10 +14,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import transfermanager
-
 import os
 import shutil
+
+import transfermanager
+
 
 class LocalDestManager(transfermanager.TransferManager):
     def insertFolder(self, sourceFile, destinationFile):
@@ -35,6 +36,6 @@ class LocalDestManager(transfermanager.TransferManager):
 
     def touch(self, sourceFile, destinationFile):
         os.utime(destinationFile.path,
-                 times = (sourceFile.modified.seconds, sourceFile.modified.seconds))
+                 times=(sourceFile.modified.seconds, sourceFile.modified.seconds))
 
         return destinationFile.copy()

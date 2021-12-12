@@ -20,14 +20,17 @@ BASE = float(utils.KIB)
 MAX_NUMBER = 10000.0
 PREFIXES = ['', 'Ki', 'Mi', 'Gi', 'Ti', 'Pi', 'Ei', 'Zi', 'Yi']
 
+
 def bS(bytes, time):
     if round(time) == 0:
         return _bS(0)
 
     return _bS(bytes / time)
 
+
 def _bS(value):
     return BinaryUnit(value, 'B/s')
+
 
 class BinaryUnit(object):
     def __init__(self, value, unit):

@@ -18,6 +18,7 @@ import driveutils
 import requestexecutor
 import transfermanager
 
+
 class RemoteDestManager(transfermanager.TransferManager):
     def __init__(self, drive):
         self._drive = drive
@@ -25,9 +26,10 @@ class RemoteDestManager(transfermanager.TransferManager):
     def insertFolder(self, sourceFile, destinationFile):
         body = destinationFile.delegate.copy()
         body['modifiedTime'] = str(sourceFile.modified)
+
         def request():
-            return (self._drive.files().create(body = body,
-                    fields = driveutils.FIELDS).execute())
+            return (self._drive.files().create(body=body,
+                                               fields=driveutils.FIELDS).execute())
 
         file = requestexecutor.execute(request)
 
@@ -35,10 +37,10 @@ class RemoteDestManager(transfermanager.TransferManager):
 
     def remove(self, destinationFile):
         def request():
-            body = { 'trashed': True }
+            body = {'trashed': True}
             return (self._drive.files()
-                    .update(fileId = destinationFile.delegate['id'], body = body,
-                            fields = driveutils.FIELDS)
+                    .update(fileId=destinationFile.delegate['id'], body=body,
+                            fields=driveutils.FIELDS)
                     .execute())
 
         file = requestexecutor.execute(request)
@@ -50,8 +52,8 @@ class RemoteDestManager(transfermanager.TransferManager):
 
         def request():
             request = (self._drive.files()
-                       .update(fileId = destinationFile.delegate['id'], body = body,
-                               fields = driveutils.FIELDS))
+                       .update(fileId=destinationFile.delegate['id'], body=body,
+                               fields=driveutils.FIELDS))
             # Ignore Etags
             request.headers['If-Match'] = '*'
 

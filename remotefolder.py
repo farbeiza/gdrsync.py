@@ -14,16 +14,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import posixpath
+
 import driveutils
 import file
 import folder
 import remotefile
 import requestexecutor
 import utils
-
-import os
-import posixpath
-import urllib.parse
 
 SCHEME = 'gdrive'
 
@@ -33,6 +31,7 @@ CHILDREN_FIELDS = 'nextPageToken, files(%s)' % driveutils.FIELDS
 # https://developers.google.com/drive/api/v3/reference/files/list#pageSize
 LIST_PAGE_SIZE = 1000
 
+
 class RemoteFolder(folder.Folder):
     def withoutChildren(self):
         return RemoteFolder(self._file)
@@ -40,7 +39,7 @@ class RemoteFolder(folder.Folder):
     def withoutDuplicate(self):
         return RemoteFolder(self._file, self._children)
 
-    def createFile(self, name, folder = None, mimeType = None):
+    def createFile(self, name, folder=None, mimeType=None):
         folder = utils.firstNonNone(folder, False)
 
         file = {'name': name}
@@ -56,6 +55,7 @@ class RemoteFolder(folder.Folder):
 
     def createFolder(self, name):
         return self.createFile(name, remotefile.MIME_FOLDER)
+
 
 class Factory(folder.Factory):
     def __init__(self, drive):
@@ -78,13 +78,14 @@ class Factory(folder.Factory):
             return self.create(remoteFileFactory.create(file))
 
         query = CHILDREN_QUERY % {'parentId': file.delegate['id']}
+
         def request():
             remoteFolder = RemoteFolder(file)
 
             pageToken = None
             while True:
-                list = (self._drive.files().list(q = query, fields = CHILDREN_FIELDS,
-                                                 pageToken = pageToken, pageSize = LIST_PAGE_SIZE))
+                list = (self._drive.files().list(q=query, fields=CHILDREN_FIELDS,
+                                                 pageToken=pageToken, pageSize=LIST_PAGE_SIZE))
 
                 files = list.execute()
                 for child in files['files']:

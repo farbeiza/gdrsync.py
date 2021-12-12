@@ -15,50 +15,51 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import filter
-import pattern
-
 import argparse
 import os.path
 import re
 
-parser = argparse.ArgumentParser(description = 'Copy files between a local system'
-                                 ' and a Google drive repository.',
-                                 epilog = 'Source and destination URLs may be local or remote. '
-                                 ' Local URLs: URLs with the form file:///path'
-                                 ' or file://host/path or native path names.'
-                                 ' Remote URLs: A URL with the form gdrive:///path,'
-                                 ' gdrive://host/path or gdrive:/path.')
+import filter
+import pattern
+
+parser = argparse.ArgumentParser(description='Copy files between a local system'
+                                             ' and a Google drive repository.',
+                                 epilog='Source and destination URLs may be local or remote. '
+                                        ' Local URLs: URLs with the form file:///path'
+                                        ' or file://host/path or native path names.'
+                                        ' Remote URLs: A URL with the form gdrive:///path,'
+                                        ' gdrive://host/path or gdrive:/path.')
 
 nativeTrailingMessage = ''
 if os.path.sep != '/':
     nativeTrailingMessage = ' (or %s, if a local native path name)' % os.path.sep
 
 parser.add_argument('sourceUrls', nargs='+',
-        help = ('source URLs.'
-                ' A trailing /%s means "copy the contents of this directory",'
-                ' as opposed to "copy the directory itself".'
-                % nativeTrailingMessage),
-        metavar = 'SOURCE')
-parser.add_argument('destUrl', help = 'destination URL', metavar = 'DEST')
+                    help=('source URLs.'
+                          ' A trailing /%s means "copy the contents of this directory",'
+                          ' as opposed to "copy the directory itself".'
+                          % nativeTrailingMessage),
+                    metavar='SOURCE')
+parser.add_argument('destUrl', help='destination URL', metavar='DEST')
 
-parser.add_argument('-c', '--checksum', action = 'store_true',
-        help = 'skip based on checksum, not mod-time & size')
-parser.add_argument('-L', '--copy-links', action = 'store_true', dest = 'copyLinks',
-        help = 'transform symlink into referent file/dir')
-parser.add_argument('--delete', action = 'store_true',
-        help = 'delete duplicate and extraneous files from dest dirs')
-parser.add_argument('--delete-excluded', action = 'store_true', dest = 'deleteExcluded',
-        help = 'also delete excluded files from dest dirs')
+parser.add_argument('-c', '--checksum', action='store_true',
+                    help='skip based on checksum, not mod-time & size')
+parser.add_argument('-L', '--copy-links', action='store_true', dest='copyLinks',
+                    help='transform symlink into referent file/dir')
+parser.add_argument('--delete', action='store_true',
+                    help='delete duplicate and extraneous files from dest dirs')
+parser.add_argument('--delete-excluded', action='store_true', dest='deleteExcluded',
+                    help='also delete excluded files from dest dirs')
+
 
 class FilterAction(argparse.Action):
-    def __init__(self, option_strings, dest, nargs = None, **kwargs):
+    def __init__(self, option_strings, dest, nargs=None, **kwargs):
         if nargs is not None:
             raise ValueError("nargs not allowed")
 
         super().__init__(option_strings, dest, **kwargs)
 
-    def __call__(self, parser, namespace, values, option_string = None):
+    def __call__(self, parser, namespace, values, option_string=None):
         filters = getattr(namespace, self.dest, [])
         if filters is None:
             filters = []
@@ -71,57 +72,62 @@ class FilterAction(argparse.Action):
     def filter(self, value):
         raise NotImplementedError()
 
+
 class ExcludeAction(FilterAction):
-    def __init__(self, option_strings, dest, nargs = None, **kwargs):
+    def __init__(self, option_strings, dest, nargs=None, **kwargs):
         super().__init__(option_strings, dest, **kwargs)
 
     def filter(self, value):
         return pattern.filter(value, filter.Exclude)
 
+
 class IncludeAction(FilterAction):
-    def __init__(self, option_strings, dest, nargs = None, **kwargs):
+    def __init__(self, option_strings, dest, nargs=None, **kwargs):
         super().__init__(option_strings, dest, **kwargs)
 
     def filter(self, value):
         return pattern.filter(value, filter.Include)
 
+
 class RegexExcludeAction(FilterAction):
-    def __init__(self, option_strings, dest, nargs = None, **kwargs):
+    def __init__(self, option_strings, dest, nargs=None, **kwargs):
         super().__init__(option_strings, dest, **kwargs)
 
     def filter(self, value):
         regex = re.compile(value)
         return filter.Exclude(regex)
 
+
 class RegexIncludeAction(FilterAction):
-    def __init__(self, option_strings, dest, nargs = None, **kwargs):
+    def __init__(self, option_strings, dest, nargs=None, **kwargs):
         super().__init__(option_strings, dest, **kwargs)
 
     def filter(self, value):
         regex = re.compile(value)
         return filter.Include(regex)
 
-parser.add_argument('--exclude', action = ExcludeAction, dest = 'filters',
-        help = 'exclude files matching PATTERN', metavar = 'PATTERN')
-parser.add_argument('--include', action = IncludeAction, dest = 'filters',
-        help = 'don\'t exclude files matching PATTERN', metavar = 'PATTERN')
-parser.add_argument('--rexclude', action = RegexExcludeAction, dest = 'filters',
-        help = 'exclude files matching REGEX', metavar = 'REGEX')
-parser.add_argument('--rinclude', action = RegexIncludeAction, dest = 'filters',
-        help = 'don\'t exclude files matching REGEX', metavar = 'REGEX')
 
-parser.add_argument('-n', '--dry-run', action = 'store_true', dest = 'dryRun',
-        help = 'perform a trial run with no changes made')
-parser.add_argument('-r', '--recursive', action = 'store_true',
-        help = 'recurse into directories')
-parser.add_argument('-p', '--update-credentials', action = 'store_true', dest = 'updateCredentials',
-        help = 'update credentials')
-parser.add_argument('-P', '--ignore-credentials', action = 'store_true', dest = 'ignoreCredentials',
-        help = 'ignore existing credentials')
-parser.add_argument('-u', '--update', action = 'store_true',
-        help = 'skip files that are newer on the receiver')
-parser.add_argument('-v', '--verbose', action='count', default = 0, dest = 'verbosity',
-        help = 'increase verbosity')
+parser.add_argument('--exclude', action=ExcludeAction, dest='filters',
+                    help='exclude files matching PATTERN', metavar='PATTERN')
+parser.add_argument('--include', action=IncludeAction, dest='filters',
+                    help='don\'t exclude files matching PATTERN', metavar='PATTERN')
+parser.add_argument('--rexclude', action=RegexExcludeAction, dest='filters',
+                    help='exclude files matching REGEX', metavar='REGEX')
+parser.add_argument('--rinclude', action=RegexIncludeAction, dest='filters',
+                    help='don\'t exclude files matching REGEX', metavar='REGEX')
+
+parser.add_argument('-n', '--dry-run', action='store_true', dest='dryRun',
+                    help='perform a trial run with no changes made')
+parser.add_argument('-r', '--recursive', action='store_true',
+                    help='recurse into directories')
+parser.add_argument('-p', '--update-credentials', action='store_true', dest='updateCredentials',
+                    help='update credentials')
+parser.add_argument('-P', '--ignore-credentials', action='store_true', dest='ignoreCredentials',
+                    help='ignore existing credentials')
+parser.add_argument('-u', '--update', action='store_true',
+                    help='skip files that are newer on the receiver')
+parser.add_argument('-v', '--verbose', action='count', default=0, dest='verbosity',
+                    help='increase verbosity')
 
 args = parser.parse_args()
 
@@ -130,15 +136,13 @@ import logging
 LOG_LEVELS = [logging.WARNING, logging.INFO, logging.DEBUG]
 LOG_LEVEL = LOG_LEVELS[min(args.verbosity, len(LOG_LEVELS) - 1)]
 
-logging.basicConfig(format = '%(asctime)s: %(levelname)s: %(name)s: %(message)s',
-        level = LOG_LEVEL)
+logging.basicConfig(format='%(asctime)s: %(levelname)s: %(name)s: %(message)s',
+                    level=LOG_LEVEL)
 if args.verbosity < len(LOG_LEVELS):
     logging.getLogger('googleapiclient.discovery').setLevel(logging.WARNING)
 
-import binaryunit
 import downloadmanager
 import driveutils
-import folder
 import localcopymanager
 import localfolder
 import location
@@ -147,16 +151,15 @@ import remotefolder
 import summary
 import uploadmanager
 
-import errno
-
 LOGGER = logging.getLogger(__name__)
+
 
 class GDRsync(object):
     def __init__(self, args):
         self.args = args
 
-        drive = driveutils.drive(updateCredentials = self.args.updateCredentials,
-                                 ignoreCredentials = self.args.ignoreCredentials)
+        drive = driveutils.drive(updateCredentials=self.args.updateCredentials,
+                                 ignoreCredentials=self.args.ignoreCredentials)
 
         self.sourceLocations = [location.create(url) for url in self.args.sourceUrls]
         self.destLocation = location.create(self.args.destUrl)
@@ -226,7 +229,7 @@ class GDRsync(object):
                 continue
 
             self._sync(self.createSourceFolder(sourceFile),
-                    self.createDestFolder(destFile))
+                       self.createDestFolder(destFile))
 
     def trash(self, sourceFolder, destFolder):
         destFolder = self.trashDuplicate(sourceFolder, destFolder)
@@ -310,7 +313,7 @@ class GDRsync(object):
 
     def syncFolder(self, sourceFolder, destFolder):
         output = (destFolder.withoutChildren()
-                .addChildren(destFolder.children.values()))
+                  .addChildren(destFolder.children.values()))
         for sourceFile in sourceFolder.children.values():
             self.summary.addCheckedFiles(1)
             self.summary.addCheckedSize(sourceFile.size)
@@ -470,5 +473,6 @@ class GDRsync(object):
                     copiedSize.value, copiedSize.unit, copiedTime,
                     bS.value, bS.unit,
                     self.summary.checkedFiles, checkedSize.value, checkedSize.unit)
+
 
 GDRsync(args).sync()

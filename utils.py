@@ -14,8 +14,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-KIB = 0x400 # bytes / kibibyte
-MIB = KIB * KIB # bytes / mebibyte
+KIB = 0x400  # bytes / kibibyte
+MIB = KIB * KIB  # bytes / mebibyte
+
 
 def firstNonNone(*arguments):
     for argument in arguments:

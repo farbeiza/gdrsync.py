@@ -14,20 +14,22 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import driveutils
-import requestexecutor
-import remotedestmanager
-import transfermanager
-
-import apiclient.http
+import logging
 import mimetypes
 import time
-import logging
+
+import apiclient.http
+
+import driveutils
+import remotedestmanager
+import requestexecutor
+import transfermanager
 
 DEFAULT_MIME_TYPE = 'application/octet-stream'
 READ_ONLY_FIELDS = ['id', 'createdTime', 'parents', 'md5Checksum', 'size']
 
 LOGGER = logging.getLogger(__name__)
+
 
 class UploadManager(remotedestmanager.RemoteDestManager):
     def __init__(self, drive, summary):
@@ -39,8 +41,8 @@ class UploadManager(remotedestmanager.RemoteDestManager):
         def createRequest(body, media):
             LOGGER.debug('Inserting %s...', body)
 
-            return (self._drive.files().create(body = body, media_body = media,
-                    fields = driveutils.FIELDS))
+            return (self._drive.files().create(body=body, media_body=media,
+                                               fields=driveutils.FIELDS))
 
         return self._copyFile(sourceFile, destinationFile, createRequest)
 
@@ -54,8 +56,8 @@ class UploadManager(remotedestmanager.RemoteDestManager):
 
         resumable = (sourceFile.size > 0)
         media = apiclient.http.MediaFileUpload(sourceFile.location.path,
-                mimetype = mimeType, chunksize = transfermanager.CHUNKSIZE,
-                resumable = resumable)
+                                               mimetype=mimeType, chunksize=transfermanager.CHUNKSIZE,
+                                               resumable=resumable)
 
         def request():
             start = time.time()
@@ -97,7 +99,7 @@ class UploadManager(remotedestmanager.RemoteDestManager):
             LOGGER.debug('Updating %s...', body)
 
             return (self._drive.files()
-                    .update(fileId = destinationFile.delegate['id'], body = body,
-                            media_body = media, fields = driveutils.FIELDS))
+                    .update(fileId=destinationFile.delegate['id'], body=body,
+                            media_body=media, fields=driveutils.FIELDS))
 
         return self._copyFile(sourceFile, destinationFile, createRequest)

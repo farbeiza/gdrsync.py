@@ -14,11 +14,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
+
 import file
 import folder
 import localfile
 
-import os
 
 class LocalFolder(folder.Folder):
     def withoutChildren(self):
@@ -27,8 +28,9 @@ class LocalFolder(folder.Folder):
     def withoutDuplicate(self):
         return LocalFolder(self._file, self._children)
 
-    def createFile(self, name, folder = None):
+    def createFile(self, name, folder=None):
         return localfile.fromParent(self.file, name, folder)
+
 
 class Factory(folder.Factory):
     @property

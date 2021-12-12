@@ -14,8 +14,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import filter
-
 import collections
 import itertools
 import re
@@ -32,11 +30,13 @@ CHAR_CLASS_END = "]"
 
 NOT_TEXT = SLASH + ESCAPE + ASTERISK + QUESTION_MARK + CHAR_CLASS_START
 
+
 def filter(pattern, filterClass):
     lexer = Lexer(pattern)
     parser = Parser(lexer)
 
     return parser.filter(filterClass)
+
 
 class Token(object):
     (
@@ -58,6 +58,7 @@ class Token(object):
     @property
     def content(self):
         return self._content
+
 
 class PeekableDecorator(object):
     def __init__(self, delegate):
@@ -95,13 +96,14 @@ class PeekableDecorator(object):
 
         return result
 
-    def peek(self, offset = 0):
+    def peek(self, offset=0):
         self._fillcache(offset + 1)
 
         if offset >= len(self._cache):
             return None
 
         return self._cache[offset]
+
 
 class Lexer(object):
     def __init__(self, string):
@@ -183,7 +185,7 @@ class Lexer(object):
 
         return self._token(Token.TEXT)
 
-    def _expect(self, char, offset = 0):
+    def _expect(self, char, offset=0):
         return self._match(self._peek(offset), char)
 
     def _accept(self, char):
@@ -202,10 +204,10 @@ class Lexer(object):
 
         return left in right
 
-    def _peek(self, offset = 0):
+    def _peek(self, offset=0):
         return self._charBuffer.peek(offset)
 
-    def _read(self, maxLength = 1):
+    def _read(self, maxLength=1):
         content = self._charBuffer.next(maxLength)
         if not content:
             return None
@@ -221,6 +223,7 @@ class Lexer(object):
         self._tokenContent = ""
 
         return Token(type, tokenContent)
+
 
 class Parser(object):
     def __init__(self, lexer):
@@ -394,7 +397,7 @@ class Parser(object):
 
         return False
 
-    def _expect(self, tokenType, offset = 0):
+    def _expect(self, tokenType, offset=0):
         return self._match(self._lexer.peek(offset), tokenType)
 
     def _match(self, token, tokenType):

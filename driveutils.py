@@ -14,20 +14,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import config
-import utils
-
-import googleapiclient.discovery
-import google.oauth2.credentials
-import google.auth.transport.requests
-import google_auth_oauthlib.flow
-import httplib2
 import logging
-import pickle
 import os
+import pickle
 import re
 
-TIMEOUT = 60 # seconds
+import google.auth.transport.requests
+import google.oauth2.credentials
+import google_auth_oauthlib.flow
+import googleapiclient.discovery
+
+import config
+
+TIMEOUT = 60  # seconds
 
 FIELDS = 'id, name, mimeType, createdTime, modifiedTime, parents, md5Checksum, size'
 
@@ -45,17 +44,20 @@ SEARCH_PARAMETER_REPLACEMENT = '\\\\\\1'
 
 LOGGER = logging.getLogger(__name__)
 
+
 def escapeQueryParameter(parameter):
     return SEARCH_PARAMETER_RE.sub(SEARCH_PARAMETER_REPLACEMENT, parameter)
 
-def drive(updateCredentials = False, ignoreCredentials = False):
-    credentials = createCredentials(updateCredentials = updateCredentials,
-                                    ignoreCredentials = ignoreCredentials)
 
-    return googleapiclient.discovery.build('drive', 'v3', credentials = credentials,
-                                           cache_discovery = False)
+def drive(updateCredentials=False, ignoreCredentials=False):
+    credentials = createCredentials(updateCredentials=updateCredentials,
+                                    ignoreCredentials=ignoreCredentials)
 
-def createCredentials(updateCredentials = False, ignoreCredentials = False):
+    return googleapiclient.discovery.build('drive', 'v3', credentials=credentials,
+                                           cache_discovery=False)
+
+
+def createCredentials(updateCredentials=False, ignoreCredentials=False):
     clientId = config.get('clientId')
     clientSecret = config.get('clientSecret')
     if not clientId:
@@ -85,7 +87,7 @@ def createCredentials(updateCredentials = False, ignoreCredentials = False):
             }
             flow = (google_auth_oauthlib.flow.InstalledAppFlow
                     .from_client_config(client_config, OAUTH_SCOPES))
-            credentials = flow.run_local_server(port = 0)
+            credentials = flow.run_local_server(port=0)
 
         if not ignoreCredentials:
             LOGGER.debug('Saving credentials...')

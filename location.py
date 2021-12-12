@@ -14,18 +14,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import utils
-
-import copy
 import os.path
 import posixpath
 import urllib.parse
 import urllib.request
 
+import utils
+
 REMOTE_SCHEME = 'gdrive'
 LOCAL_SCHEME = 'file'
 
 URL_SEPARATOR = '/'
+
 
 def create(string):
     url = urllib.parse.urlparse(string)
@@ -35,6 +35,7 @@ def create(string):
         return LocalUrl(url)
 
     return LocalPath(string)
+
 
 class Location(object):
     @property
@@ -67,8 +68,9 @@ class Location(object):
     def join(self, path):
         raise NotImplementedError()
 
+
 class Url(Location):
-    def __init__(self, url, base = None):
+    def __init__(self, url, base=None):
         self._url = url
         self._base = utils.firstNonNone(base, self._path)
 
@@ -130,6 +132,7 @@ class Url(Location):
     def __str__(self):
         return urllib.parse.urlunparse(self._url)
 
+
 class RemoteUrl(Url):
     @property
     def remote(self):
@@ -137,6 +140,7 @@ class RemoteUrl(Url):
 
     def create(self, url, base):
         return RemoteUrl(url, base)
+
 
 class LocalUrl(Url):
     @property
@@ -146,8 +150,9 @@ class LocalUrl(Url):
     def create(self, url, base):
         return LocalUrl(url, base)
 
+
 class LocalPath(Location):
-    def __init__(self, path, base = None):
+    def __init__(self, path, base=None):
         self._path = path
         self._base = utils.firstNonNone(base, path)
 

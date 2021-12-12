@@ -14,11 +14,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import driveutils
-import requestexecutor
-import remotedestmanager
-
 import time
+
+import driveutils
+import remotedestmanager
+import requestexecutor
+
 
 class RemoteCopyManager(remotedestmanager.RemoteDestManager):
     def __init__(self, drive, summary):
@@ -37,8 +38,8 @@ class RemoteCopyManager(remotedestmanager.RemoteDestManager):
             start = time.time()
 
             request = (self._drive.files()
-                       .copy(fileId = sourceFile.delegate['id'], body = body,
-                             fields = driveutils.FIELDS))
+                       .copy(fileId=sourceFile.delegate['id'], body=body,
+                             fields=driveutils.FIELDS))
 
             file = request.execute()
 

@@ -22,6 +22,7 @@ RETRIES = 5
 
 LOGGER = logging.getLogger(__name__)
 
+
 def execute(request):
     for retry in range(RETRIES):
         try:
@@ -33,6 +34,7 @@ def execute(request):
             time.sleep(wait)
 
     raise RuntimeError('Request aborted after %d retries.' % RETRIES)
+
 
 def exponentialBackoffWait(retry):
     return (2 ** retry) + random.random()

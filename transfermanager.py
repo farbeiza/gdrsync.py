@@ -14,17 +14,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import binaryunit
-import utils
-
 import logging
 import time
+
+import binaryunit
+import utils
 
 CHUNKSIZE = 1 * utils.MIB
 
 PERCENTAGE = 100.0
 
 LOGGER = logging.getLogger(__name__)
+
 
 class TransferManager(object):
     def insertFolder(self, destinationFile):

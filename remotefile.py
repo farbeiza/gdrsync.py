@@ -17,28 +17,28 @@
 import date
 import driveutils
 import file
-import logging
 import requestexecutor
 import utils
-
-import posixpath
 
 MIME_FOLDER = 'application/vnd.google-apps.folder'
 
 FILE_ID_QUERY = '(\'%(parentId)s\' in parents) and (name = \'%(name)s\') and (not trashed)'
 
+
 def fromParent(parent, delegate):
     return fromParentLocation(parent.location, delegate)
+
 
 def fromParentLocation(parentLocation, delegate):
     location = parentLocation.join(delegate['name'])
 
     return RemoteFile(location, delegate)
 
+
 class RemoteFile(file.File):
-    def __init__(self, location, delegate, folder = None):
+    def __init__(self, location, delegate, folder=None):
         folder = utils.firstNonNone(folder,
-                delegate.get('mimeType') == MIME_FOLDER)
+                                    delegate.get('mimeType') == MIME_FOLDER)
 
         super(RemoteFile, self).__init__(location, folder)
 
@@ -55,7 +55,7 @@ class RemoteFile(file.File):
     @property
     def modified(self):
         modifiedTime = self._delegate.get('modifiedTime',
-                self._delegate['createdTime'])
+                                          self._delegate['createdTime'])
 
         return date.fromString(modifiedTime)
 
@@ -70,6 +70,7 @@ class RemoteFile(file.File):
     def withDelegate(self, delegate):
         return RemoteFile(self.location, delegate)
 
+
 class Factory(object):
     def __init__(self, drive):
         self.drive = drive
@@ -83,8 +84,8 @@ class Factory(object):
             raise RuntimeError('%s not found' % location)
 
         def request():
-            return (self.drive.files().get(fileId = fileId,
-                    fields = driveutils.FIELDS).execute())
+            return (self.drive.files().get(fileId=fileId,
+                                           fields=driveutils.FIELDS).execute())
 
         file = requestexecutor.execute(request)
 
@@ -100,12 +101,13 @@ class Factory(object):
             return None
 
         query = FILE_ID_QUERY % {
-            'parentId' : driveutils.escapeQueryParameter(parentId),
-            'name' : driveutils.escapeQueryParameter(location.name)
+            'parentId': driveutils.escapeQueryParameter(parentId),
+            'name': driveutils.escapeQueryParameter(location.name)
         }
+
         def request():
-            return (self.drive.files().list(q = query,
-                    pageSize = 1, fields = 'files(id)').execute())
+            return (self.drive.files().list(q=query,
+                                            pageSize=1, fields='files(id)').execute())
 
         children = requestexecutor.execute(request)
         for child in children.get('files'):
@@ -114,7 +116,7 @@ class Factory(object):
         return None
 
     def retrieveRootId(self):
-        root = (self.drive.files().get(fileId = 'root', fields = 'id')
+        root = (self.drive.files().get(fileId='root', fields='id')
                 .execute())
 
         return root['id']

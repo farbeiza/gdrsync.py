@@ -16,6 +16,7 @@
 
 EXCLUDE, INCLUDE = range(2)
 
+
 def isExcluded(filters, file):
     if filters is None:
         return False
@@ -29,8 +30,9 @@ def isExcluded(filters, file):
 
     return False
 
+
 class Filter(object):
-    def __init__(self, regex, folder = None):
+    def __init__(self, regex, folder=None):
         self._regex = regex
         self._folder = folder
 
@@ -50,15 +52,17 @@ class Filter(object):
     def _checkValue(self):
         raise NotImplementedError()
 
+
 class Exclude(Filter):
-    def __init__(self, regex, folder = None):
+    def __init__(self, regex, folder=None):
         super().__init__(regex, folder)
 
     def _checkValue(self):
         return EXCLUDE
 
+
 class Include(Filter):
-    def __init__(self, regex, folder = None):
+    def __init__(self, regex, folder=None):
         super().__init__(regex, folder)
 
     def _checkValue(self):

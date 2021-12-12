@@ -14,14 +14,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import io
+import time
+
+import apiclient.http
+
 import driveutils
 import localdestmanager
 import requestexecutor
 import transfermanager
 
-import apiclient.http
-import io
-import time
 
 class DownloadManager(localdestmanager.LocalDestManager):
     def __init__(self, drive, summary):
@@ -47,11 +49,11 @@ class DownloadManager(localdestmanager.LocalDestManager):
     def _copyNonEmptyFile(self, sourceFile, destinationFile):
         def createMedia(fileObject):
             request = (self._drive.files()
-                       .get_media(fileId = sourceFile.delegate['id'],
-                                  fields = driveutils.FIELDS))
+                       .get_media(fileId=sourceFile.delegate['id'],
+                                  fields=driveutils.FIELDS))
 
             return apiclient.http.MediaIoBaseDownload(fileObject, request,
-                                                      chunksize = transfermanager.CHUNKSIZE)
+                                                      chunksize=transfermanager.CHUNKSIZE)
 
         def request():
             start = time.time()

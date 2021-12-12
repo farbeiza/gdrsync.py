@@ -14,12 +14,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import io
+import time
+
 import localdestmanager
 import requestexecutor
 import transfermanager
 
-import io
-import time
 
 class LocalCopyManager(localdestmanager.LocalDestManager):
     def __init__(self, summary):

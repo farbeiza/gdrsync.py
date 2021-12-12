@@ -14,25 +14,28 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import file
-import utils
-
-import date
 import hashlib
 import os.path
 
+import date
+import file
+import utils
+
 MD5_BUFFER_SIZE = 16 * utils.KIB
 
-def fromParent(parent, name, folder = None):
+
+def fromParent(parent, name, folder=None):
     return fromParentLocation(parent.location, name, folder)
 
-def fromParentLocation(parentLocation, name, folder = None):
+
+def fromParentLocation(parentLocation, name, folder=None):
     location = parentLocation.join(name)
 
     return LocalFile(location, folder)
 
+
 class LocalFile(file.File):
-    def __init__(self, location, folder = None):
+    def __init__(self, location, folder=None):
         folder = utils.firstNonNone(folder, os.path.isdir(location.path))
 
         super(LocalFile, self).__init__(location, folder)
@@ -58,7 +61,7 @@ class LocalFile(file.File):
 
     @property
     def contentMd5(self):
-        with open(self.path, mode = 'rb') as file:
+        with open(self.path, mode='rb') as file:
             md5 = hashlib.md5()
             while True:
                 data = file.read(MD5_BUFFER_SIZE)
@@ -79,6 +82,7 @@ class LocalFile(file.File):
 
     def copy(self):
         return LocalFile(self.location)
+
 
 class Factory(object):
     def create(self, location):

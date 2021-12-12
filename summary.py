@@ -16,6 +16,7 @@
 
 import binaryunit
 
+
 class Summary(object):
     def __init__(self):
         self._copiedFiles = 0
