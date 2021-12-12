@@ -16,8 +16,9 @@
 
 import utils
 
+
 class Folder(object):
-    def __init__(self, file, children = None, duplicate = None):
+    def __init__(self, file, children=None, duplicate=None):
         self._file = file
         self._children = utils.firstNonNone(children, {})
         self._duplicate = utils.firstNonNone(duplicate, [])
@@ -63,8 +64,12 @@ class Folder(object):
     def withoutDuplicate(self):
         raise NotImplementedError()
 
-    def createFile(self, name, folder = None):
+    def createFile(self, name, folder=None):
         raise NotImplementedError()
+
+    def __str__(self):
+        return str(self.file)
+
 
 class Factory(object):
     @property

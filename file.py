@@ -18,8 +18,9 @@ import utils
 
 import hashlib
 
+
 class File(object):
-    def __init__(self, location, folder = None):
+    def __init__(self, location, folder=None):
         self._location = location
         self._folder = utils.firstNonNone(folder, False)
 
@@ -63,3 +64,6 @@ class File(object):
     @property
     def link(self):
         return False
+
+    def __str__(self):
+        return str(self.location)

@@ -213,13 +213,17 @@ class GDRsync(object):
 
         for sourceFile in sourceFolder.folders():
             if self.isExcluded(sourceFile):
-                LOGGER.info('%s: Skipping excluded folder...', sourceFile.location)
+                LOGGER.info('%s: Skipping excluded folder...', sourceFile)
                 continue
 
             if (not self.args.copyLinks) and sourceFile.link:
                 continue
 
-            destFile = destFolder.children[sourceFile.location.name]
+            try:
+                destFile = destFolder.children[sourceFile.location.name]
+            except KeyError:
+                LOGGER.warning('%s: Not found in destination folder: %s', sourceFile, destFolder)
+                continue
 
             self._sync(self.createSourceFolder(sourceFile),
                     self.createDestFolder(destFile))
@@ -237,14 +241,14 @@ class GDRsync(object):
             return destFolder
 
         for destFile in destFolder.duplicate:
-            LOGGER.debug('%s: Duplicate file.', destFile.location)
+            LOGGER.debug('%s: Duplicate file.', destFile)
 
             destFile = self.trashFile(destFile)
 
         return destFolder.withoutDuplicate()
 
     def trashFile(self, destFile):
-        LOGGER.info('%s: Trashing file...', destFile.location)
+        LOGGER.info('%s: Trashing file...', destFile)
         if self.args.dryRun:
             return destFile
 
@@ -260,7 +264,7 @@ class GDRsync(object):
                 output.addChild(destFile)
                 continue
 
-            LOGGER.debug('%s: Extraneous file.', destFile.location)
+            LOGGER.debug('%s: Extraneous file.', destFile)
 
             destFile = self.trashFile(destFile)
 
@@ -277,8 +281,8 @@ class GDRsync(object):
                 output.addChild(destFile)
                 continue
 
-            LOGGER.debug('%s: Different type: %s != %s.', destFile.location,
-                    sourceFile.folder, destFile.folder)
+            LOGGER.debug('%s: Different type: %s != %s.', destFile,
+                         sourceFile.folder, destFile.folder)
 
             destFile = self.trashFile(destFile)
 
@@ -295,7 +299,7 @@ class GDRsync(object):
                 output.addChild(destFile)
                 continue
 
-            LOGGER.debug('%s: Excluded file.', destFile.location)
+            LOGGER.debug('%s: Excluded file.', destFile)
 
             destFile = self.trashFile(destFile)
 
@@ -318,7 +322,7 @@ class GDRsync(object):
 
                 output.addChild(destFile)
             except FileNotFoundError as error:
-                LOGGER.warning('%s: No such file or directory.', sourceFile.location)
+                LOGGER.warning('%s: No such file or directory.', sourceFile)
 
         return output
 
@@ -336,14 +340,14 @@ class GDRsync(object):
 
     def fileOperation(self, sourceFile, destFile):
         if self.isExcluded(sourceFile):
-            LOGGER.info('%s: Skipping excluded file... (Checked %d/%d files)',
-                    sourceFile.location, self.summary.checkedFiles, self.summary.totalFiles)
+            LOGGER.info('%s: Skipping excluded file... (Checked %d/%d files)', sourceFile,
+                        self.summary.checkedFiles, self.summary.totalFiles)
 
             return None
 
         if (not self.args.copyLinks) and sourceFile.link:
-            LOGGER.info('%s: Skipping non-regular file... (Checked %d/%d files)',
-                    sourceFile.location, self.summary.checkedFiles, self.summary.totalFiles)
+            LOGGER.info('%s: Skipping non-regular file... (Checked %d/%d files)', sourceFile,
+                        self.summary.checkedFiles, self.summary.totalFiles)
 
             return None
 
@@ -354,8 +358,8 @@ class GDRsync(object):
             return self.insertFile
 
         if self.args.update and (destFile.modified > sourceFile.modified):
-            LOGGER.debug('%s: Newer destination file: %s < %s.',
-                    destFile.location, sourceFile.modified, destFile.modified)
+            LOGGER.debug('%s: Newer destination file: %s < %s.', destFile,
+                         sourceFile.modified, destFile.modified)
         elif self.args.checksum:
             fileOperation = self.checkChecksum(sourceFile, destFile)
             if fileOperation is not None:
@@ -377,8 +381,8 @@ class GDRsync(object):
             if fileOperation is not None:
                 return fileOperation
 
-        LOGGER.debug('%s: Up to date. (Checked %d/%d files)', destFile.location,
-                self.summary.checkedFiles, self.summary.totalFiles)
+        LOGGER.debug('%s: Up to date. (Checked %d/%d files)', destFile,
+                     self.summary.checkedFiles, self.summary.totalFiles)
 
         return None
 
@@ -386,8 +390,8 @@ class GDRsync(object):
         if destFile.md5 == sourceFile.md5:
             return None
 
-        LOGGER.debug('%s: Different checksum: %s != %s.', destFile.location,
-                sourceFile.md5, destFile.md5)
+        LOGGER.debug('%s: Different checksum: %s != %s.', destFile,
+                     sourceFile.md5, destFile.md5)
 
         return self.updateFile
 
@@ -395,8 +399,8 @@ class GDRsync(object):
         if destFile.size == sourceFile.size:
             return None
 
-        LOGGER.debug('%s: Different size: %d != %d.', destFile.location,
-                sourceFile.size, destFile.size)
+        LOGGER.debug('%s: Different size: %d != %d.', destFile,
+                     sourceFile.size, destFile.size)
 
         return self.updateFile
 
@@ -408,38 +412,38 @@ class GDRsync(object):
         if fileOperation is not None:
             return fileOperation
 
-        LOGGER.debug('%s: Different modified time: %s != %s.', destFile.location,
-                sourceFile.modified, destFile.modified)
+        LOGGER.debug('%s: Different modified time: %s != %s.', destFile,
+                     sourceFile.modified, destFile.modified)
 
         return self.touch
 
     def insertFolder(self, sourceFile, destFile):
-        LOGGER.info('%s: Inserting folder... (Checked %d/%d files)',
-                destFile.location, self.summary.checkedFiles, self.summary.totalFiles)
+        LOGGER.info('%s: Inserting folder... (Checked %d/%d files)', destFile,
+                    self.summary.checkedFiles, self.summary.totalFiles)
         if self.args.dryRun:
             return destFile
 
         return self.transferManager.insertFolder(sourceFile, destFile)
 
     def insertFile(self, sourceFile, destFile):
-        LOGGER.info('%s: Inserting file... (Checked %d/%d files)',
-                destFile.location, self.summary.checkedFiles, self.summary.totalFiles)
+        LOGGER.info('%s: Inserting file... (Checked %d/%d files)', destFile,
+                    self.summary.checkedFiles, self.summary.totalFiles)
         if self.args.dryRun:
             return destFile
 
         return self.transferManager.insertFile(sourceFile, destFile)
 
     def updateFile(self, sourceFile, destFile):
-        LOGGER.info('%s: Updating file... (Checked %d/%d files)',
-                destFile.location, self.summary.checkedFiles, self.summary.totalFiles)
+        LOGGER.info('%s: Updating file... (Checked %d/%d files)', destFile,
+                    self.summary.checkedFiles, self.summary.totalFiles)
         if self.args.dryRun:
             return destFile
 
         return self.transferManager.updateFile(sourceFile, destFile)
 
     def touch(self, sourceFile, destFile):
-        LOGGER.info('%s: Updating modified time... (Checked %d/%d files)',
-                destFile.location, self.summary.checkedFiles, self.summary.totalFiles)
+        LOGGER.info('%s: Updating modified time... (Checked %d/%d files)', destFile,
+                    self.summary.checkedFiles, self.summary.totalFiles)
         if self.args.dryRun:
             return destFile
 
