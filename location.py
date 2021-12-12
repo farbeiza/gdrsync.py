@@ -96,7 +96,7 @@ class Url(Location):
 
     @property
     def name(self):
-        return posixpath.basename(self._path)
+        return urllib.parse.unquote(posixpath.basename(self._path))
 
     @property
     def parent(self):
@@ -125,7 +125,7 @@ class Url(Location):
     def join(self, path):
         newPath = self._path
         newPath = newPath + URL_SEPARATOR
-        newPath = urllib.parse.urljoin(newPath, path)
+        newPath = urllib.parse.urljoin(newPath, urllib.parse.quote(path))
 
         return self._withPath(newPath)
 
