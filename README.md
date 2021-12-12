@@ -24,7 +24,7 @@ You may need to change the first line of gdrsync.py to point to your python
 executable. For instance, if you are using Arch linux, you should change that
 line to:
 
-    #!/usr/bin/python3
+    #!/usr/bin/python
 
 ## Configuration
 
