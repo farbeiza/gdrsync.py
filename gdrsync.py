@@ -22,33 +22,32 @@ import re
 import filter
 import pattern
 
-parser = argparse.ArgumentParser(description='Copy files between a local system'
-                                             ' and a Google drive repository.',
+PARSER = argparse.ArgumentParser(description='Copy files between a local system' ' and a Google drive repository.',
                                  epilog='Source and destination URLs may be local or remote. '
                                         ' Local URLs: URLs with the form file:///path'
                                         ' or file://host/path or native path names.'
                                         ' Remote URLs: A URL with the form gdrive:///path,'
                                         ' gdrive://host/path or gdrive:/path.')
 
-nativeTrailingMessage = ''
+NATIVE_TRAILING_MESSAGE = ''
 if os.path.sep != '/':
-    nativeTrailingMessage = ' (or %s, if a local native path name)' % os.path.sep
+    NATIVE_TRAILING_MESSAGE = ' (or %s, if a local native path name)' % os.path.sep
 
-parser.add_argument('sourceUrls', nargs='+',
+PARSER.add_argument('sourceUrls', nargs='+',
                     help=('source URLs.'
                           ' A trailing /%s means "copy the contents of this directory",'
                           ' as opposed to "copy the directory itself".'
-                          % nativeTrailingMessage),
+                          % NATIVE_TRAILING_MESSAGE),
                     metavar='SOURCE')
-parser.add_argument('destUrl', help='destination URL', metavar='DEST')
+PARSER.add_argument('destUrl', help='destination URL', metavar='DEST')
 
-parser.add_argument('-c', '--checksum', action='store_true',
+PARSER.add_argument('-c', '--checksum', action='store_true',
                     help='skip based on checksum, not mod-time & size')
-parser.add_argument('-L', '--copy-links', action='store_true', dest='copyLinks',
+PARSER.add_argument('-L', '--copy-links', action='store_true', dest='copyLinks',
                     help='transform symlink into referent file/dir')
-parser.add_argument('--delete', action='store_true',
+PARSER.add_argument('--delete', action='store_true',
                     help='delete duplicate and extraneous files from dest dirs')
-parser.add_argument('--delete-excluded', action='store_true', dest='deleteExcluded',
+PARSER.add_argument('--delete-excluded', action='store_true', dest='deleteExcluded',
                     help='also delete excluded files from dest dirs')
 
 
@@ -107,38 +106,38 @@ class RegexIncludeAction(FilterAction):
         return filter.Include(regex)
 
 
-parser.add_argument('--exclude', action=ExcludeAction, dest='filters',
+PARSER.add_argument('--exclude', action=ExcludeAction, dest='filters',
                     help='exclude files matching PATTERN', metavar='PATTERN')
-parser.add_argument('--include', action=IncludeAction, dest='filters',
+PARSER.add_argument('--include', action=IncludeAction, dest='filters',
                     help='don\'t exclude files matching PATTERN', metavar='PATTERN')
-parser.add_argument('--rexclude', action=RegexExcludeAction, dest='filters',
+PARSER.add_argument('--rexclude', action=RegexExcludeAction, dest='filters',
                     help='exclude files matching REGEX', metavar='REGEX')
-parser.add_argument('--rinclude', action=RegexIncludeAction, dest='filters',
+PARSER.add_argument('--rinclude', action=RegexIncludeAction, dest='filters',
                     help='don\'t exclude files matching REGEX', metavar='REGEX')
 
-parser.add_argument('-n', '--dry-run', action='store_true', dest='dryRun',
+PARSER.add_argument('-n', '--dry-run', action='store_true', dest='dryRun',
                     help='perform a trial run with no changes made')
-parser.add_argument('-r', '--recursive', action='store_true',
+PARSER.add_argument('-r', '--recursive', action='store_true',
                     help='recurse into directories')
-parser.add_argument('-p', '--update-credentials', action='store_true', dest='updateCredentials',
+PARSER.add_argument('-p', '--update-credentials', action='store_true', dest='updateCredentials',
                     help='update credentials')
-parser.add_argument('-P', '--ignore-credentials', action='store_true', dest='ignoreCredentials',
+PARSER.add_argument('-P', '--ignore-credentials', action='store_true', dest='ignoreCredentials',
                     help='ignore existing credentials')
-parser.add_argument('-u', '--update', action='store_true',
+PARSER.add_argument('-u', '--update', action='store_true',
                     help='skip files that are newer on the receiver')
-parser.add_argument('-v', '--verbose', action='count', default=0, dest='verbosity',
+PARSER.add_argument('-v', '--verbose', action='count', default=0, dest='verbosity',
                     help='increase verbosity')
 
-args = parser.parse_args()
+ARGS = PARSER.parse_args()
 
 import logging
 
 LOG_LEVELS = [logging.WARNING, logging.INFO, logging.DEBUG]
-LOG_LEVEL = LOG_LEVELS[min(args.verbosity, len(LOG_LEVELS) - 1)]
+LOG_LEVEL = LOG_LEVELS[min(ARGS.verbosity, len(LOG_LEVELS) - 1)]
 
 logging.basicConfig(format='%(asctime)s: %(levelname)s: %(name)s: %(message)s',
                     level=LOG_LEVEL)
-if args.verbosity < len(LOG_LEVELS):
+if ARGS.verbosity < len(LOG_LEVELS):
     logging.getLogger('googleapiclient.discovery').setLevel(logging.WARNING)
 
 import downloadmanager
@@ -154,7 +153,7 @@ import uploadmanager
 LOGGER = logging.getLogger(__name__)
 
 
-class GDRsync(object):
+class GdrSync(object):
     def __init__(self, args):
         self.args = args
 
@@ -200,7 +199,7 @@ class GDRsync(object):
         destFolder = self.destFolderFactory.create(self.destLocation)
         self._sync(virtualSourceFolder, destFolder)
 
-        self.logResult();
+        self.logResult()
 
         LOGGER.info('End.')
 
@@ -475,4 +474,5 @@ class GDRsync(object):
                     self.summary.checkedFiles, checkedSize.value, checkedSize.unit)
 
 
-GDRsync(args).sync()
+if __name__ == '__main__':
+    GdrSync(ARGS).sync()
