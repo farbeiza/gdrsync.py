@@ -120,7 +120,7 @@ class Url(Location):
         return self._url.path.endswith(URL_SEPARATOR)
 
     def withBase(self, baseLocation):
-        return create(self._url, baseLocation._path)
+        return self.create(self._url, baseLocation._path)
 
     def join(self, path):
         newPath = self._path

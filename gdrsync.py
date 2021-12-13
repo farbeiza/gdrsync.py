@@ -223,7 +223,7 @@ class GdrSync(object):
 
             try:
                 destFile = destFolder.children[sourceFile.location.name]
-            except KeyError:
+            except KeyError as error:
                 LOGGER.warning('%s: Not found in destination folder: %s', sourceFile, destFolder)
                 continue
 

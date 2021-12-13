@@ -18,6 +18,7 @@ import hashlib
 import os.path
 
 import date
+import exception
 import file
 import utils
 
@@ -87,10 +88,10 @@ class LocalFile(file.File):
 class Factory(object):
     def create(self, location):
         if location.remote:
-            raise RuntimeError('Expected a local location: %s' % location)
+            raise RuntimeError(f'Expected a local location: {location}')
 
         file = LocalFile(location)
         if not file.exists:
-            raise RuntimeError('%s not found' % location)
+            raise exception.NotFoundException(f'{location} not found')
 
         return file

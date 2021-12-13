@@ -16,6 +16,7 @@
 
 import date
 import driveutils
+import exception
 import file
 import requestexecutor
 import utils
@@ -81,7 +82,7 @@ class Factory(object):
 
         fileId = self.retrieveFileId(location)
         if fileId is None:
-            raise RuntimeError('%s not found' % location)
+            raise exception.NotFoundException(f'{location} not found')
 
         def request():
             return (self.drive.files().get(fileId=fileId,
