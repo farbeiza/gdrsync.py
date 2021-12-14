@@ -18,24 +18,25 @@ import logging
 import random
 import time
 
-import exception
-
 RETRIES = 5
 
 LOGGER = logging.getLogger(__name__)
 
 
-def execute(request):
-    for retry in range(RETRIES):
+def execute(request, retries=RETRIES):
+    retry = 0
+    while True:
         try:
             return request()
-        except:
+        except BaseException as exception:
+            if retry > retries:
+                raise exception
+
             wait = exponentialBackoffWait(retry)
             LOGGER.exception('Retry %d failed. Retrying after %f s...', retry, wait)
 
             time.sleep(wait)
-
-    raise exception.RequestExecutorException(f'Request aborted after {RETRIES} retries.')
+            retry += 1
 
 
 def exponentialBackoffWait(retry):
