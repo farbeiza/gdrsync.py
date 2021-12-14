@@ -29,7 +29,7 @@ def execute(request, retries=RETRIES):
         try:
             return request()
         except BaseException as exception:
-            if retry > retries:
+            if retry >= retries:
                 raise exception
 
             wait = exponentialBackoffWait(retry)
