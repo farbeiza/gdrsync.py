@@ -78,7 +78,7 @@ class Factory(object):
 
     def create(self, location):
         if not location.remote:
-            raise RuntimeError('Expected a remote location: %s' % location)
+            raise exception.WrongTypeException(f'Expected a remote location: {location}')
 
         fileId = self.retrieveFileId(location)
         if fileId is None:

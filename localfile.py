@@ -88,7 +88,7 @@ class LocalFile(file.File):
 class Factory(object):
     def create(self, location):
         if location.remote:
-            raise RuntimeError(f'Expected a local location: {location}')
+            raise exception.WrongTypeException(f'Expected a local location: {location}')
 
         file = LocalFile(location)
         if not file.exists:

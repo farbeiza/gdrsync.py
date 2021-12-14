@@ -18,6 +18,8 @@ import collections
 import itertools
 import re
 
+import exception
+
 SLASH = "/"
 
 ESCAPE = "\\"
@@ -236,7 +238,7 @@ class Parser(object):
     def filter(self, filterClass):
         self._pattern()
         if not self._expect(None):
-            raise Error("Unexpected token: " + self._read())
+            raise exception.PatternException(f'Unexpected token: {self._read()}')
 
         if self._root:
             self._regex = "^" + self._regex

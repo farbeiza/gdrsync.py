@@ -16,6 +16,7 @@
 
 import os
 
+import exception
 import file
 import folder
 import localfile
@@ -43,7 +44,7 @@ class Factory(folder.Factory):
     def create(self, file):
         if not isinstance(file, localfile.LocalFile):
             if file.remote:
-                raise RuntimeError('Expected a local location: %s' % file)
+                raise exception.WrongTypeException(f'Expected a local location: {file}')
 
             localFileFactory = localfile.Factory()
 

@@ -16,3 +16,15 @@
 
 class NotFoundException(Exception):
     pass
+
+
+class PatternException(Exception):
+    pass
+
+
+class RequestExecutorException(Exception):
+    pass
+
+
+class WrongTypeException(Exception):
+    pass

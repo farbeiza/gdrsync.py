@@ -31,7 +31,7 @@ class LocalCopyManager(localdestmanager.LocalDestManager):
 
     def _copyFile(self, sourceFile, destinationFile):
         if not sourceFile.exists:
-            raise FileNotFoundError
+            raise FileNotFoundError(f'File not found: {sourceFile}')
 
         def request():
             start = time.time()

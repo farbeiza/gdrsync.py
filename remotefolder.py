@@ -17,6 +17,7 @@
 import posixpath
 
 import driveutils
+import exception
 import file
 import folder
 import remotefile
@@ -71,7 +72,7 @@ class Factory(folder.Factory):
     def create(self, file):
         if not isinstance(file, remotefile.RemoteFile):
             if not file.remote:
-                raise RuntimeError('Expected a remote location: %s' % file)
+                raise exception.WrongTypeException(f'Expected a remote location: {file}')
 
             remoteFileFactory = remotefile.Factory(self._drive)
 
