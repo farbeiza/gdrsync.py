@@ -336,7 +336,7 @@ class GdrSync(object):
             return None
 
         if destFile is None:
-            destFile = destFolder.createFile(sourceFile.location.name, sourceFile.folder)
+            destFile = destFolder.createFile(sourceFile.location.name, folder=sourceFile.folder)
 
         return fileOperation(sourceFile, destFile)
 

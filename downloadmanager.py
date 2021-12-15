@@ -17,7 +17,7 @@
 import io
 import time
 
-import apiclient.http
+import apiclient
 
 import driveutils
 import localdestmanager

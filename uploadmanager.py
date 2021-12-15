@@ -18,7 +18,7 @@ import logging
 import mimetypes
 import time
 
-import apiclient.http
+import apiclient
 
 import driveutils
 import remotedestmanager

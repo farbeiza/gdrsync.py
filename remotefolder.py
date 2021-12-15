@@ -40,22 +40,18 @@ class RemoteFolder(folder.Folder):
     def withoutDuplicate(self):
         return RemoteFolder(self._file, self._children)
 
-    def createFile(self, name, folder=None, mimeType=None):
+    def createFile(self, name, folder=None):
         folder = utils.firstNonNone(folder, False)
 
         file = {'name': name}
-        if mimeType is None:
-            if folder:
-                file['mimeType'] = remotefile.MIME_FOLDER
-        else:
-            file['mimeType'] = mimeType
-
+        if folder:
+            file['mimeType'] = remotefile.MIME_FOLDER
         file['parents'] = [self.file.delegate.get('id')]
 
         return remotefile.fromParent(self.file, file)
 
     def createFolder(self, name):
-        return self.createFile(name, remotefile.MIME_FOLDER)
+        return self.createFile(name, folder=True)
 
 
 class Factory(folder.Factory):
