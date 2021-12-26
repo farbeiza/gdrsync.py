@@ -80,44 +80,38 @@ class Factory(object):
         if not location.remote:
             raise exception.WrongTypeException(f'Expected a remote location: {location}')
 
-        fileId = self.retrieveFileId(location)
-        if fileId is None:
+        file = self.retrieveFile(location)
+        if file is None:
             raise exception.NotFoundException(f'{location} not found')
-
-        def request():
-            return (self.drive.files().get(fileId=fileId,
-                                           fields=driveutils.FIELDS).execute())
-
-        file = requestexecutor.execute(request)
 
         return RemoteFile(location, file)
 
-    def retrieveFileId(self, location):
-        parent = location.parent
-        if parent is None:
-            return self.retrieveRootId()
+    def retrieveFile(self, location):
+        parent_location = location.parent
+        if parent_location is None:
+            return self.retrieveRoot()
 
-        parentId = self.retrieveFileId(parent)
-        if parentId is None:
+        parent = self.retrieveFile(parent_location)
+        if parent is None:
             return None
 
         query = FILE_ID_QUERY % {
-            'parentId': driveutils.escapeQueryParameter(parentId),
+            'parentId': driveutils.escapeQueryParameter(parent['id']),
             'name': driveutils.escapeQueryParameter(location.name)
         }
 
         def request():
-            return (self.drive.files().list(q=query,
-                                            pageSize=1, fields='files(id)').execute())
+            return (self.drive.files().list(q=query, pageSize=1,
+                                            fields='files(%s)' % driveutils.FIELDS).execute())
 
         children = requestexecutor.execute(request)
         for child in children.get('files'):
-            return child['id']
+            return child
 
         return None
 
-    def retrieveRootId(self):
-        root = (self.drive.files().get(fileId='root', fields='id')
+    def retrieveRoot(self):
+        root = (self.drive.files().get(fileId='root', fields=driveutils.FIELDS)
                 .execute())
 
-        return root['id']
+        return root
