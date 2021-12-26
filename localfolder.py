@@ -1,6 +1,6 @@
 #!/usr/bin/python
 #
-# Copyright 2015 Fernando Arbeiza <fernando.arbeiza@gmail.com>
+# Copyright 2021 Fernando Arbeiza <fernando.arbeiza@gmail.com>
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -41,14 +41,14 @@ class Factory(folder.Factory):
     def empty(self, file):
         return LocalFolder(file)
 
-    def create(self, file):
+    def create(self, file, create_path=False):
         if not isinstance(file, localfile.LocalFile):
             if file.remote:
                 raise exception.WrongTypeException(f'Expected a local location: {file}')
 
             localFileFactory = localfile.Factory()
 
-            return self.create(localFileFactory.create(file))
+            return self.create(localFileFactory.create(file, create_path=create_path))
 
         localFolder = LocalFolder(file)
         for path in os.listdir(file.delegate.path):

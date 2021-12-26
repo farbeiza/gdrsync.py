@@ -1,6 +1,6 @@
 #!/usr/bin/python
 #
-# Copyright 2015 Fernando Arbeiza <fernando.arbeiza@gmail.com>
+# Copyright 2021 Fernando Arbeiza <fernando.arbeiza@gmail.com>
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 # limitations under the License.
 
 import hashlib
+import logging
 import os.path
 
 import date
@@ -23,6 +24,8 @@ import file
 import utils
 
 MD5_BUFFER_SIZE = 16 * utils.KIB
+
+LOGGER = logging.getLogger(__name__)
 
 
 def fromParent(parent, name, folder=None):
@@ -86,12 +89,16 @@ class LocalFile(file.File):
 
 
 class Factory(object):
-    def create(self, location):
+    def create(self, location, create_path=False):
         if location.remote:
             raise exception.WrongTypeException(f'Expected a local location: {location}')
 
         file = LocalFile(location)
         if not file.exists:
-            raise exception.NotFoundException(f'{location} not found')
+            if not create_path:
+                raise exception.NotFoundException(f'{location} not found')
+
+            LOGGER.info('%s: Creating path...', file)
+            os.makedirs(file.path)
 
         return file

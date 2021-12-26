@@ -1,7 +1,7 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 #
-# Copyright 2015 Fernando Arbeiza <fernando.arbeiza@gmail.com>
+# Copyright 2021 Fernando Arbeiza <fernando.arbeiza@gmail.com>
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -196,7 +196,7 @@ class GdrSync(object):
         LOGGER.info('Starting...')
 
         virtualSourceFolder = self.sourceFolderFactory.virtualFromLocations(self.sourceLocations)
-        destFolder = self.destFolderFactory.create(self.destLocation)
+        destFolder = self.destFolderFactory.create(self.destLocation, create_path=True)
         self._sync(virtualSourceFolder, destFolder)
 
         self.logResult()

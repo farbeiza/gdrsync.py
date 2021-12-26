@@ -1,6 +1,6 @@
 #!/usr/bin/python
 #
-# Copyright 2015 Fernando Arbeiza <fernando.arbeiza@gmail.com>
+# Copyright 2021 Fernando Arbeiza <fernando.arbeiza@gmail.com>
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,6 +14,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import logging
+
 import date
 import driveutils
 import exception
@@ -24,6 +26,8 @@ import utils
 MIME_FOLDER = 'application/vnd.google-apps.folder'
 
 FILE_ID_QUERY = '(\'%(parentId)s\' in parents) and (name = \'%(name)s\') and (not trashed)'
+
+LOGGER = logging.getLogger(__name__)
 
 
 def create_delegate(name, parent_ids, folder=False, mime_type=None):
@@ -132,4 +136,12 @@ class Factory(object):
         return root
 
     def create_path(self, location, parent):
-        return None
+        LOGGER.info('%s: Creating path...', location)
+
+        body = create_delegate(location.name, parent_ids=[parent['id']], folder=True)
+
+        def request():
+            return (self.drive.files().create(body=body,
+                                              fields=driveutils.FIELDS).execute())
+
+        return requestexecutor.execute(request)

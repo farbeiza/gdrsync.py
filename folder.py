@@ -1,6 +1,6 @@
 #!/usr/bin/python
 #
-# Copyright 2015 Fernando Arbeiza <fernando.arbeiza@gmail.com>
+# Copyright 2021 Fernando Arbeiza <fernando.arbeiza@gmail.com>
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -79,7 +79,7 @@ class Factory(object):
     def empty(self, file):
         raise NotImplementedError()
 
-    def create(self, location):
+    def create(self, location, create_path=False):
         raise NotImplementedError()
 
     def virtualFromLocations(self, locations):

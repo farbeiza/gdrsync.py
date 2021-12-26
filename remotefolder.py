@@ -1,6 +1,6 @@
 #!/usr/bin/python
 #
-# Copyright 2015 Fernando Arbeiza <fernando.arbeiza@gmail.com>
+# Copyright 2021 Fernando Arbeiza <fernando.arbeiza@gmail.com>
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -61,14 +61,14 @@ class Factory(folder.Factory):
     def empty(self, file):
         return RemoteFolder(file)
 
-    def create(self, file):
+    def create(self, file, create_path=False):
         if not isinstance(file, remotefile.RemoteFile):
             if not file.remote:
                 raise exception.WrongTypeException(f'Expected a remote location: {file}')
 
             remoteFileFactory = remotefile.Factory(self._drive)
 
-            return self.create(remoteFileFactory.create(file))
+            return self.create(remoteFileFactory.create(file, create_path=create_path))
 
         query = CHILDREN_QUERY % {'parentId': file.delegate['id']}
 
