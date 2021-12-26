@@ -88,22 +88,22 @@ class Factory(object):
     def __init__(self, drive):
         self.drive = drive
 
-    def create(self, location):
+    def create(self, location, create_path=False):
         if not location.remote:
             raise exception.WrongTypeException(f'Expected a remote location: {location}')
 
-        file = self.retrieveFile(location)
+        file = self.retrieveFile(location, create_path=create_path)
         if file is None:
             raise exception.NotFoundException(f'{location} not found')
 
         return RemoteFile(location, file)
 
-    def retrieveFile(self, location):
+    def retrieveFile(self, location, create_path):
         parent_location = location.parent
         if parent_location is None:
             return self.retrieveRoot()
 
-        parent = self.retrieveFile(parent_location)
+        parent = self.retrieveFile(parent_location, create_path=create_path)
         if parent is None:
             return None
 
@@ -120,6 +120,9 @@ class Factory(object):
         for child in children.get('files'):
             return child
 
+        if create_path:
+            return self.create_path(location, parent)
+
         return None
 
     def retrieveRoot(self):
@@ -127,3 +130,6 @@ class Factory(object):
                 .execute())
 
         return root
+
+    def create_path(self, location, parent):
+        return None
