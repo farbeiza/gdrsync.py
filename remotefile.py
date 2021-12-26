@@ -26,6 +26,18 @@ MIME_FOLDER = 'application/vnd.google-apps.folder'
 FILE_ID_QUERY = '(\'%(parentId)s\' in parents) and (name = \'%(name)s\') and (not trashed)'
 
 
+def create_delegate(name, parent_ids, folder=False, mime_type=None):
+    delegate = {'name': name,
+                'parents': parent_ids}
+
+    if folder:
+        delegate['mimeType'] = MIME_FOLDER
+    if mime_type is not None:
+        delegate['mimeType'] = mime_type
+
+    return delegate
+
+
 def fromParent(parent, delegate):
     return fromParentLocation(parent.location, delegate)
 

@@ -42,11 +42,7 @@ class RemoteFolder(folder.Folder):
 
     def createFile(self, name, folder=None):
         folder = utils.firstNonNone(folder, False)
-
-        file = {'name': name}
-        if folder:
-            file['mimeType'] = remotefile.MIME_FOLDER
-        file['parents'] = [self.file.delegate.get('id')]
+        file = remotefile.create_delegate(name, parent_ids=[self.file.delegate.get('id')], folder=folder)
 
         return remotefile.fromParent(self.file, file)
 
