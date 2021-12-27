@@ -69,23 +69,28 @@ class GdrSyncTestCase(unittest.TestCase):
         self.remote_factory.create(self.remote_location, create_path=True)
 
     def test_utf8_name(self):
-        source_url = 'file:resource/utf8_name'
+        with tempfile.TemporaryDirectory() as expected_path:
+            folder_name = 'utf8文件内容Folder'
+            file_name = 'utf8文件内容'
 
-        args = argumentparser.PARSER.parse_args(args=['-r', source_url + '/', REMOTE_URL])
-        sync.Sync(args).sync()
+            expected_folder_path = os.path.join(expected_path, folder_name)
+            expected_file_path = os.path.join(expected_folder_path, file_name)
 
-        with tempfile.TemporaryDirectory() as actual_path:
-            args = argumentparser.PARSER.parse_args(args=['-r', REMOTE_URL + '/', actual_path])
+            os.mkdir(expected_folder_path)
+            with open(expected_file_path, mode='w') as f:
+                f.write(file_name)
+
+            args = argumentparser.PARSER.parse_args(args=['-r', expected_path + '/', REMOTE_URL])
             sync.Sync(args).sync()
 
-            source_location = location.create(source_url)
+            with tempfile.TemporaryDirectory() as actual_path:
+                args = argumentparser.PARSER.parse_args(args=['-r', REMOTE_URL + '/', actual_path])
+                sync.Sync(args).sync()
 
-            folder_name = 'utf8文件内容Folder'
-            self.assertFolder(actual_path, source_location.path, folder_name)
+                self.assertFolder(actual_path, expected_path, folder_name)
 
-            actual_file_base = os.path.join(actual_path, folder_name)
-            expected_file_base = os.path.join(source_location.path, folder_name)
-            self.assertFile(actual_file_base, expected_file_base, 'utf8文件内容')
+                actual_folder_path = os.path.join(actual_path, folder_name)
+                self.assertFile(actual_folder_path, expected_folder_path, file_name)
 
     def assertFolder(self, first_base, second_base, name):
         first = os.path.join(first_base, name)
