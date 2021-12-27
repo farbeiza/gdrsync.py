@@ -16,7 +16,6 @@
 
 import filecmp
 import logging
-import math
 import os.path
 import tempfile
 import unittest
@@ -133,8 +132,8 @@ class SyncTestCase(unittest.TestCase):
         first = os.stat(first_path).st_mtime
         second = os.stat(second_path).st_mtime
 
-        if math.fabs(first - second) > 1e-3:
-            raise AssertionError(f'Different modification time: {first} != {second} ({first_path} != {second_path})')
+        self.assertAlmostEqual(first, second, places=3,
+                               msg=f'Modification time: {first_path} != {second_path}')
 
 
 if __name__ == '__main__':
