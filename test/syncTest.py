@@ -77,7 +77,7 @@ class SyncTestCase(unittest.TestCase):
             expected_file_path = os.path.join(expected_folder_path, file_name)
 
             os.mkdir(expected_folder_path)
-            self.file_append_random_line(expected_file_path)
+            self.file_write_random_line(expected_file_path)
 
             args = argumentparser.PARSER.parse_args(args=['-r', expected_path + '/', REMOTE_URL])
             sync.Sync(args).sync()
@@ -99,14 +99,14 @@ class SyncTestCase(unittest.TestCase):
 
             file_name_1 = 'file_1'
             expected_file_path_1 = os.path.join(expected_folder_path, file_name_1)
-            self.file_append_random_line(expected_file_path_1)
+            self.file_write_random_line(expected_file_path_1)
 
             args = argumentparser.PARSER.parse_args(args=['-r', expected_path + '/', REMOTE_URL])
             sync.Sync(args).sync()
 
             file_name_2 = 'file_2'
             expected_file_path_2 = os.path.join(expected_folder_path, file_name_2)
-            self.file_append_random_line(expected_file_path_2)
+            self.file_write_random_line(expected_file_path_2)
 
             args = argumentparser.PARSER.parse_args(args=['-r', expected_path + '/', REMOTE_URL])
             sync.Sync(args).sync()
@@ -126,13 +126,13 @@ class SyncTestCase(unittest.TestCase):
             file_name = 'update_file'
             expected_file_path = os.path.join(expected_path, file_name)
 
-            self.file_append_random_line(expected_file_path)
+            self.file_write_random_line(expected_file_path)
             size1 = os.path.getsize(expected_file_path)
 
             args = argumentparser.PARSER.parse_args(args=['-r', expected_path + '/', REMOTE_URL])
             sync.Sync(args).sync()
 
-            self.file_append_random_line(expected_file_path)
+            self.file_write_random_line(expected_file_path)
             size2 = os.path.getsize(expected_file_path)
 
             self.assertNotEqual(size2, size1)
@@ -158,7 +158,7 @@ class SyncTestCase(unittest.TestCase):
     def modification_time_test(self, file_name, time):
         with tempfile.TemporaryDirectory() as expected_path:
             expected_file_path = os.path.join(expected_path, file_name)
-            self.file_append_random_line(expected_file_path)
+            self.file_write_random_line(expected_file_path)
             os.utime(expected_file_path, times=(time, time))
 
             args = argumentparser.PARSER.parse_args(args=['-r', expected_path + '/', REMOTE_URL])
@@ -179,7 +179,7 @@ class SyncTestCase(unittest.TestCase):
             expected_file_path = os.path.join(expected_folder_path, file_name)
 
             os.mkdir(expected_folder_path)
-            self.file_append_random_line(expected_file_path)
+            self.file_write_random_line(expected_file_path)
 
             args = argumentparser.PARSER.parse_args(args=['-r', expected_path + '/', REMOTE_URL])
             sync.Sync(args).sync()
@@ -193,44 +193,37 @@ class SyncTestCase(unittest.TestCase):
                 actual_folder_path = os.path.join(actual_path, folder_name)
                 self.assertFile(actual_folder_path, expected_folder_path, file_name)
 
-    def file_append_random_line(self, file):
-        with open(file, mode='a') as f:
-            f.writelines([str(uuid.uuid4())])
+    def file_write_random_line(self, file, mode='a'):
+        with open(file, mode=mode) as f:
+            f.write(str(uuid.uuid4()))
+            f.write('\n')
 
     def assertFolder(self, first_base, second_base, name):
         first = os.path.join(first_base, name)
         second = os.path.join(second_base, name)
 
         if not os.path.exists(first):
-            if os.path.exists(second):
-                raise AssertionError(f'Folder exists: {second}')
+            self.assertFalse(os.path.exists(second), f'Folder exists: {second}')
         else:
-            if not os.path.isdir(first):
-                raise AssertionError(f'Not a folder: {first}')
+            self.assertTrue(os.path.isdir(first), msg=f'Not a folder: {first}')
 
-            if not os.path.exists(second):
-                raise AssertionError(f'Folder does not exist: {second}')
-            if not os.path.isdir(second):
-                raise AssertionError(f'Not a folder: {second}')
+            self.assertTrue(os.path.exists(second), f'Folder does not exist: {second}')
+            self.assertTrue(os.path.isdir(second), f'Not a folder: {second}')
 
     def assertFile(self, first_base, second_base, name):
         first = os.path.join(first_base, name)
         second = os.path.join(second_base, name)
 
         if not os.path.exists(first):
-            if os.path.exists(second):
-                raise AssertionError(f'File exists: {second}')
+            self.assertFalse(os.path.exists(second), msg=f'File exists: {second}')
         else:
-            if not os.path.isfile(first):
-                raise AssertionError(f'Not a file: {first}')
+            self.assertTrue(os.path.isfile(first), msg=f'Not a file: {first}')
 
-            if not os.path.exists(second):
-                raise AssertionError(f'File does not exist: {second}')
-            if not os.path.isfile(second):
-                raise AssertionError(f'Not a file: {second}')
+            self.assertTrue(os.path.exists(second), msg=f'File does not exist: {second}')
+            self.assertTrue(os.path.isfile(second), msg=f'Not a file: {second}')
 
-            if not filecmp.cmp(first, second, shallow=False):
-                raise AssertionError(f'Different file contents: {first} != {second}')
+            self.assertTrue(filecmp.cmp(first, second, shallow=False),
+                            msg=f'Different file contents: {first} != {second}')
 
             self.assertModificationTime(first, second)
 
