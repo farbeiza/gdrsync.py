@@ -35,7 +35,7 @@ REMOTE_URL = 'gdrive:///test'
 logging.basicConfig(level=logging.INFO)
 
 
-class GdrSyncTestCase(unittest.TestCase):
+class SyncTestCase(unittest.TestCase):
     drive = None
     remote_factory = None
     remote_location = None
