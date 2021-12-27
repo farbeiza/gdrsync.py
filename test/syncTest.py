@@ -79,12 +79,10 @@ class SyncTestCase(unittest.TestCase):
             os.mkdir(expected_folder_path)
             self.file_write_random_line(expected_file_path)
 
-            args = argumentparser.PARSER.parse_args(args=['-r', expected_path + '/', REMOTE_URL])
-            sync.Sync(args).sync()
+            self.sync('-r', expected_path + '/', REMOTE_URL)
 
             with tempfile.TemporaryDirectory() as actual_path:
-                args = argumentparser.PARSER.parse_args(args=['-r', REMOTE_URL + '/', actual_path])
-                sync.Sync(args).sync()
+                self.sync('-r', REMOTE_URL + '/', actual_path)
 
                 self.assertFolder(actual_path, expected_path, folder_name)
 
@@ -101,19 +99,16 @@ class SyncTestCase(unittest.TestCase):
             expected_file_path_1 = os.path.join(expected_folder_path, file_name_1)
             self.file_write_random_line(expected_file_path_1)
 
-            args = argumentparser.PARSER.parse_args(args=['-r', expected_path + '/', REMOTE_URL])
-            sync.Sync(args).sync()
+            self.sync('-r', expected_path + '/', REMOTE_URL)
 
             file_name_2 = 'file_2'
             expected_file_path_2 = os.path.join(expected_folder_path, file_name_2)
             self.file_write_random_line(expected_file_path_2)
 
-            args = argumentparser.PARSER.parse_args(args=['-r', expected_path + '/', REMOTE_URL])
-            sync.Sync(args).sync()
+            self.sync('-r', expected_path + '/', REMOTE_URL)
 
             with tempfile.TemporaryDirectory() as actual_path:
-                args = argumentparser.PARSER.parse_args(args=['-r', REMOTE_URL + '/', actual_path])
-                sync.Sync(args).sync()
+                self.sync('-r', REMOTE_URL + '/', actual_path)
 
                 self.assertFolder(actual_path, expected_path, folder_name)
 
@@ -135,8 +130,7 @@ class SyncTestCase(unittest.TestCase):
             os.utime(expected_file_path, times=(time, time))
             stat1 = os.stat(expected_file_path)
 
-            args = argumentparser.PARSER.parse_args(args=['-r', expected_path + '/', REMOTE_URL])
-            sync.Sync(args).sync()
+            self.sync('-r', expected_path + '/', REMOTE_URL)
 
             self.file_write_random_line(expected_file_path, mode='w')
             os.utime(expected_file_path, times=(time, time))
@@ -145,12 +139,10 @@ class SyncTestCase(unittest.TestCase):
             self.assertEqual(stat2.st_size, stat1.st_size)
             self.assertEqual(stat2.st_mtime, stat1.st_mtime)
 
-            args = argumentparser.PARSER.parse_args(args=['-r', expected_path + '/', REMOTE_URL])
-            sync.Sync(args).sync()
+            self.sync('-r', expected_path + '/', REMOTE_URL)
 
             with tempfile.TemporaryDirectory() as actual_path:
-                args = argumentparser.PARSER.parse_args(args=['-r', REMOTE_URL + '/', actual_path])
-                sync.Sync(args).sync()
+                self.sync('-r', REMOTE_URL + '/', actual_path)
 
                 actual_file_path = os.path.join(actual_path, file_name)
                 self.assertFalse(filecmp.cmp(actual_file_path, expected_file_path, shallow=False),
@@ -167,8 +159,7 @@ class SyncTestCase(unittest.TestCase):
             os.utime(expected_file_path, times=(time, time))
             stat1 = os.stat(expected_file_path)
 
-            args = argumentparser.PARSER.parse_args(args=['-r', '-c', expected_path + '/', REMOTE_URL])
-            sync.Sync(args).sync()
+            self.sync('-r', '-c', expected_path + '/', REMOTE_URL)
 
             self.file_write_random_line(expected_file_path, mode='w')
             os.utime(expected_file_path, times=(time, time))
@@ -177,12 +168,10 @@ class SyncTestCase(unittest.TestCase):
             self.assertEqual(stat2.st_size, stat1.st_size)
             self.assertEqual(stat2.st_mtime, stat1.st_mtime)
 
-            args = argumentparser.PARSER.parse_args(args=['-r', '-c', expected_path + '/', REMOTE_URL])
-            sync.Sync(args).sync()
+            self.sync('-r', '-c', expected_path + '/', REMOTE_URL)
 
             with tempfile.TemporaryDirectory() as actual_path:
-                args = argumentparser.PARSER.parse_args(args=['-r', REMOTE_URL + '/', actual_path])
-                sync.Sync(args).sync()
+                self.sync('-r', REMOTE_URL + '/', actual_path)
 
                 self.assertFile(actual_path, expected_path, file_name)
 
@@ -200,17 +189,14 @@ class SyncTestCase(unittest.TestCase):
             expected_file_path = os.path.join(expected_path, file_name)
             self.file_write_random_line(expected_file_path)
 
-            args = argumentparser.PARSER.parse_args(args=['-r', expected_path + '/', REMOTE_URL])
-            sync.Sync(args).sync()
+            self.sync('-r', expected_path + '/', REMOTE_URL)
 
             os.utime(expected_file_path, times=(time, time))
 
-            args = argumentparser.PARSER.parse_args(args=['-r', expected_path + '/', REMOTE_URL])
-            sync.Sync(args).sync()
+            self.sync('-r', expected_path + '/', REMOTE_URL)
 
             with tempfile.TemporaryDirectory() as actual_path:
-                args = argumentparser.PARSER.parse_args(args=['-r', REMOTE_URL + '/', actual_path])
-                sync.Sync(args).sync()
+                self.sync('-r', REMOTE_URL + '/', actual_path)
 
                 self.assertFile(actual_path, expected_path, file_name)
 
@@ -230,8 +216,7 @@ class SyncTestCase(unittest.TestCase):
             self.file_write_random_line(expected_file_path)
             stat1 = os.stat(expected_file_path)
 
-            args = argumentparser.PARSER.parse_args(args=['-r', expected_path + '/', REMOTE_URL])
-            sync.Sync(args).sync()
+            self.sync('-r', expected_path + '/', REMOTE_URL)
 
             self.file_write_random_line(expected_file_path)
             stat2 = os.stat(expected_file_path)
@@ -239,12 +224,10 @@ class SyncTestCase(unittest.TestCase):
             self.assertNotEqual(stat2.st_size, stat1.st_size)
             self.assertNotEqual(stat2.st_mtime, stat1.st_mtime)
 
-            args = argumentparser.PARSER.parse_args(args=['-r', expected_path + '/', REMOTE_URL])
-            sync.Sync(args).sync()
+            self.sync('-r', expected_path + '/', REMOTE_URL)
 
             with tempfile.TemporaryDirectory() as actual_path:
-                args = argumentparser.PARSER.parse_args(args=['-r', REMOTE_URL + '/', actual_path])
-                sync.Sync(args).sync()
+                self.sync('-r', REMOTE_URL + '/', actual_path)
 
                 self.assertFolder(actual_path, expected_path, folder_name)
 
@@ -255,6 +238,13 @@ class SyncTestCase(unittest.TestCase):
         with open(file, mode=mode) as f:
             f.write(str(uuid.uuid4()))
             f.write('\n')
+
+    def sync(self, *arg_list):
+        args = argumentparser.PARSER.parse_args(args=arg_list)
+
+        sync_instance = sync.Sync(args)
+        sync_instance.sync()
+        sync_instance.close()
 
     def assertFolder(self, first_base, second_base, name):
         first = os.path.join(first_base, name)

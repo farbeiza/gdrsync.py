@@ -32,4 +32,6 @@ if ARGS.verbosity < len(LOG_LEVELS):
 import sync
 
 if __name__ == '__main__':
-    sync.Sync(ARGS).sync()
+    sync_instance = sync.Sync(ARGS)
+    sync_instance.sync()
+    sync_instance.close()

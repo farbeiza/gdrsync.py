@@ -35,40 +35,43 @@ class Sync(object):
     def __init__(self, args):
         self.args = args
 
-        drive = driveutils.drive(updateCredentials=self.args.updateCredentials,
-                                 ignoreCredentials=self.args.ignoreCredentials)
+        self.drive = driveutils.drive(updateCredentials=self.args.updateCredentials,
+                                      ignoreCredentials=self.args.ignoreCredentials)
 
         self.sourceLocations = [location.create(url) for url in self.args.sourceUrls]
         self.destLocation = location.create(self.args.destUrl)
 
-        self.sourceFolderFactory = self.folderFactoryFromLocations(self.sourceLocations, drive)
-        self.destFolderFactory = self.folderFactoryFromLocation(self.destLocation, drive)
+        self.sourceFolderFactory = self.folderFactoryFromLocations(self.sourceLocations)
+        self.destFolderFactory = self.folderFactoryFromLocation(self.destLocation)
 
         self.summary = summary.Summary()
 
-        self.transferManager = self.createTransferManager(drive)
+        self.transferManager = self.createTransferManager()
 
-    def folderFactoryFromLocations(self, locations, drive):
+    def folderFactoryFromLocations(self, locations):
         for location in locations:
-            return self.folderFactoryFromLocation(location, drive)
+            return self.folderFactoryFromLocation(location)
 
-    def folderFactoryFromLocation(self, location, drive):
+    def folderFactoryFromLocation(self, location):
         if location.remote:
-            return remotefolder.Factory(drive)
+            return remotefolder.Factory(self.drive)
 
         return localfolder.Factory()
 
-    def createTransferManager(self, drive):
+    def createTransferManager(self):
         if self.sourceFolderFactory.remote:
             if self.destFolderFactory.remote:
-                return remotecopymanager.RemoteCopyManager(drive, self.summary)
+                return remotecopymanager.RemoteCopyManager(self.drive, self.summary)
             else:
-                return downloadmanager.DownloadManager(drive, self.summary)
+                return downloadmanager.DownloadManager(self.drive, self.summary)
         else:
             if self.destFolderFactory.remote:
-                return uploadmanager.UploadManager(drive, self.summary)
+                return uploadmanager.UploadManager(self.drive, self.summary)
             else:
                 return localcopymanager.LocalCopyManager(self.summary)
+
+    def close(self):
+        self.drive.close()
 
     def sync(self):
         LOGGER.info('Starting...')
