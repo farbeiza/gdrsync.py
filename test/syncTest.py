@@ -67,6 +67,33 @@ class SyncTestCase(unittest.TestCase):
     def create_remote_folder(self):
         self.remote_factory.create(self.remote_location, create_path=True)
 
+    def test_modification_time(self):
+        self.modification_time_test('modification_time', 12345.54321)
+
+    def test_millisecond_modification_time(self):
+        self.modification_time_test('millisecond_modification_time', 12345.001)
+
+    def test_negative_modification_time(self):
+        self.modification_time_test('negative_modification_time', -12345.54321)
+
+    def modification_time_test(self, file_name, time):
+        with tempfile.TemporaryDirectory() as expected_path:
+            expected_file_path = os.path.join(expected_path, file_name)
+
+            with open(expected_file_path, mode='w') as f:
+                f.write(file_name)
+
+            os.utime(expected_file_path, times=(time, time))
+
+            args = argumentparser.PARSER.parse_args(args=['-r', expected_path + '/', REMOTE_URL])
+            sync.Sync(args).sync()
+
+            with tempfile.TemporaryDirectory() as actual_path:
+                args = argumentparser.PARSER.parse_args(args=['-r', REMOTE_URL + '/', actual_path])
+                sync.Sync(args).sync()
+
+                self.assertFile(actual_path, expected_path, file_name)
+
     def test_utf8_name(self):
         with tempfile.TemporaryDirectory() as expected_path:
             folder_name = 'utf8文件内容Folder'
