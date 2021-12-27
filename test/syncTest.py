@@ -19,6 +19,7 @@ import logging
 import os.path
 import tempfile
 import unittest
+import uuid
 
 import argumentparser
 import driveutils
@@ -67,6 +68,84 @@ class SyncTestCase(unittest.TestCase):
     def create_remote_folder(self):
         self.remote_factory.create(self.remote_location, create_path=True)
 
+    def test_create_file(self):
+        with tempfile.TemporaryDirectory() as expected_path:
+            folder_name = 'create_folder'
+            file_name = 'create_file'
+
+            expected_folder_path = os.path.join(expected_path, folder_name)
+            expected_file_path = os.path.join(expected_folder_path, file_name)
+
+            os.mkdir(expected_folder_path)
+            self.file_append_random_line(expected_file_path)
+
+            args = argumentparser.PARSER.parse_args(args=['-r', expected_path + '/', REMOTE_URL])
+            sync.Sync(args).sync()
+
+            with tempfile.TemporaryDirectory() as actual_path:
+                args = argumentparser.PARSER.parse_args(args=['-r', REMOTE_URL + '/', actual_path])
+                sync.Sync(args).sync()
+
+                self.assertFolder(actual_path, expected_path, folder_name)
+
+                actual_folder_path = os.path.join(actual_path, folder_name)
+                self.assertFile(actual_folder_path, expected_folder_path, file_name)
+
+    def test_update_folder(self):
+        with tempfile.TemporaryDirectory() as expected_path:
+            folder_name = 'update_folder'
+            expected_folder_path = os.path.join(expected_path, folder_name)
+            os.mkdir(expected_folder_path)
+
+            file_name_1 = 'file_1'
+            expected_file_path_1 = os.path.join(expected_folder_path, file_name_1)
+            self.file_append_random_line(expected_file_path_1)
+
+            args = argumentparser.PARSER.parse_args(args=['-r', expected_path + '/', REMOTE_URL])
+            sync.Sync(args).sync()
+
+            file_name_2 = 'file_2'
+            expected_file_path_2 = os.path.join(expected_folder_path, file_name_2)
+            self.file_append_random_line(expected_file_path_2)
+
+            args = argumentparser.PARSER.parse_args(args=['-r', expected_path + '/', REMOTE_URL])
+            sync.Sync(args).sync()
+
+            with tempfile.TemporaryDirectory() as actual_path:
+                args = argumentparser.PARSER.parse_args(args=['-r', REMOTE_URL + '/', actual_path])
+                sync.Sync(args).sync()
+
+                self.assertFolder(actual_path, expected_path, folder_name)
+
+                actual_folder_path = os.path.join(actual_path, folder_name)
+                self.assertFile(actual_folder_path, expected_folder_path, file_name_1)
+                self.assertFile(actual_folder_path, expected_folder_path, file_name_2)
+
+    def test_update_file(self):
+        with tempfile.TemporaryDirectory() as expected_path:
+            file_name = 'update_file'
+            expected_file_path = os.path.join(expected_path, file_name)
+
+            self.file_append_random_line(expected_file_path)
+            size1 = os.path.getsize(expected_file_path)
+
+            args = argumentparser.PARSER.parse_args(args=['-r', expected_path + '/', REMOTE_URL])
+            sync.Sync(args).sync()
+
+            self.file_append_random_line(expected_file_path)
+            size2 = os.path.getsize(expected_file_path)
+
+            self.assertNotEqual(size2, size1)
+
+            args = argumentparser.PARSER.parse_args(args=['-r', expected_path + '/', REMOTE_URL])
+            sync.Sync(args).sync()
+
+            with tempfile.TemporaryDirectory() as actual_path:
+                args = argumentparser.PARSER.parse_args(args=['-r', REMOTE_URL + '/', actual_path])
+                sync.Sync(args).sync()
+
+                self.assertFile(actual_path, expected_path, file_name)
+
     def test_modification_time(self):
         self.modification_time_test('modification_time', 12345.54321)
 
@@ -79,10 +158,7 @@ class SyncTestCase(unittest.TestCase):
     def modification_time_test(self, file_name, time):
         with tempfile.TemporaryDirectory() as expected_path:
             expected_file_path = os.path.join(expected_path, file_name)
-
-            with open(expected_file_path, mode='w') as f:
-                f.write(file_name)
-
+            self.file_append_random_line(expected_file_path)
             os.utime(expected_file_path, times=(time, time))
 
             args = argumentparser.PARSER.parse_args(args=['-r', expected_path + '/', REMOTE_URL])
@@ -103,8 +179,7 @@ class SyncTestCase(unittest.TestCase):
             expected_file_path = os.path.join(expected_folder_path, file_name)
 
             os.mkdir(expected_folder_path)
-            with open(expected_file_path, mode='w') as f:
-                f.write(file_name)
+            self.file_append_random_line(expected_file_path)
 
             args = argumentparser.PARSER.parse_args(args=['-r', expected_path + '/', REMOTE_URL])
             sync.Sync(args).sync()
@@ -117,6 +192,10 @@ class SyncTestCase(unittest.TestCase):
 
                 actual_folder_path = os.path.join(actual_path, folder_name)
                 self.assertFile(actual_folder_path, expected_folder_path, file_name)
+
+    def file_append_random_line(self, file):
+        with open(file, mode='a') as f:
+            f.writelines([str(uuid.uuid4())])
 
     def assertFolder(self, first_base, second_base, name):
         first = os.path.join(first_base, name)
