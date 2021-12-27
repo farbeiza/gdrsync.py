@@ -122,30 +122,7 @@ class SyncTestCase(unittest.TestCase):
                 self.assertFile(actual_folder_path, expected_folder_path, file_name_2)
 
     def test_should_update_file(self):
-        with tempfile.TemporaryDirectory() as expected_path:
-            file_name = 'update_file'
-            expected_file_path = os.path.join(expected_path, file_name)
-
-            self.file_write_random_line(expected_file_path)
-            stat1 = os.stat(expected_file_path)
-
-            args = argumentparser.PARSER.parse_args(args=['-r', expected_path + '/', REMOTE_URL])
-            sync.Sync(args).sync()
-
-            self.file_write_random_line(expected_file_path)
-            stat2 = os.stat(expected_file_path)
-
-            self.assertNotEqual(stat2.st_size, stat1.st_size)
-            self.assertNotEqual(stat2.st_mtime, stat1.st_mtime)
-
-            args = argumentparser.PARSER.parse_args(args=['-r', expected_path + '/', REMOTE_URL])
-            sync.Sync(args).sync()
-
-            with tempfile.TemporaryDirectory() as actual_path:
-                args = argumentparser.PARSER.parse_args(args=['-r', REMOTE_URL + '/', actual_path])
-                sync.Sync(args).sync()
-
-                self.assertFile(actual_path, expected_path, file_name)
+        self.update_test('update_folder', 'update_file')
 
     def test_should_not_update_file_when_same_size_and_same_modification_time(self):
         with tempfile.TemporaryDirectory() as expected_path:
@@ -237,16 +214,30 @@ class SyncTestCase(unittest.TestCase):
 
                 self.assertFile(actual_path, expected_path, file_name)
 
-    def test_should_create_file_when_utf8_name(self):
-        with tempfile.TemporaryDirectory() as expected_path:
-            folder_name = 'utf8文件内容Folder'
-            file_name = 'utf8文件内容'
+    def test_should_update_file_when_special_char_name(self):
+        self.update_test('specialCharFolder*?', 'specialChar*?')
 
+    def test_should_update_file_when_utf8_name(self):
+        self.update_test('utf8文件内容Folder', 'utf8文件内容')
+
+    def update_test(self, folder_name, file_name):
+        with tempfile.TemporaryDirectory() as expected_path:
             expected_folder_path = os.path.join(expected_path, folder_name)
             expected_file_path = os.path.join(expected_folder_path, file_name)
 
             os.mkdir(expected_folder_path)
+
             self.file_write_random_line(expected_file_path)
+            stat1 = os.stat(expected_file_path)
+
+            args = argumentparser.PARSER.parse_args(args=['-r', expected_path + '/', REMOTE_URL])
+            sync.Sync(args).sync()
+
+            self.file_write_random_line(expected_file_path)
+            stat2 = os.stat(expected_file_path)
+
+            self.assertNotEqual(stat2.st_size, stat1.st_size)
+            self.assertNotEqual(stat2.st_mtime, stat1.st_mtime)
 
             args = argumentparser.PARSER.parse_args(args=['-r', expected_path + '/', REMOTE_URL])
             sync.Sync(args).sync()
