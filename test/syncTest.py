@@ -17,6 +17,7 @@
 import filecmp
 import logging
 import os.path
+import shutil
 import tempfile
 import unittest
 import uuid
@@ -233,6 +234,56 @@ class SyncTestCase(unittest.TestCase):
 
                 actual_folder_path = os.path.join(actual_path, folder_name)
                 self.assertFile(actual_folder_path, expected_folder_path, file_name)
+
+    def test_should_delete_extraneous_folder_when_option(self):
+        with tempfile.TemporaryDirectory() as expected_path:
+            folder_name = 'extraneous_folder'
+            expected_folder_path = os.path.join(expected_path, folder_name)
+            os.mkdir(expected_folder_path)
+
+            file_name = 'file'
+            expected_file_path = os.path.join(expected_folder_path, file_name)
+            self.file_write_random_line(expected_file_path)
+
+            self.sync('-r', expected_path + '/', REMOTE_URL)
+
+            with tempfile.TemporaryDirectory() as actual_path:
+                self.sync('-r', REMOTE_URL + '/', actual_path)
+
+                self.assertFolder(actual_path, expected_path, folder_name)
+
+                actual_folder_path = os.path.join(actual_path, folder_name)
+                self.assertFile(actual_folder_path, expected_folder_path, file_name)
+
+                shutil.rmtree(expected_folder_path)
+
+                self.sync('-r', '--delete', expected_path + '/', REMOTE_URL)
+
+                self.sync('-r', '--delete', REMOTE_URL + '/', actual_path)
+
+                self.assertFolder(actual_path, expected_path, folder_name)
+                self.assertFile(actual_folder_path, expected_folder_path, file_name)
+
+    def test_should_delete_extraneous_file_when_option(self):
+        with tempfile.TemporaryDirectory() as expected_path:
+            file_name = 'extraneous_file'
+            expected_file_path = os.path.join(expected_path, file_name)
+            self.file_write_random_line(expected_file_path)
+
+            self.sync('-r', expected_path + '/', REMOTE_URL)
+
+            with tempfile.TemporaryDirectory() as actual_path:
+                self.sync('-r', REMOTE_URL + '/', actual_path)
+
+                self.assertFile(actual_path, expected_path, file_name)
+
+                os.remove(expected_file_path)
+
+                self.sync('-r', '--delete', expected_path + '/', REMOTE_URL)
+
+                self.sync('-r', '--delete', REMOTE_URL + '/', actual_path)
+
+                self.assertFile(actual_path, expected_path, file_name)
 
     def file_write_random_line(self, file, mode='a'):
         with open(file, mode=mode) as f:
