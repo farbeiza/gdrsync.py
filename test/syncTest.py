@@ -471,6 +471,89 @@ class SyncTestCase(unittest.TestCase):
                 actual_link_path = os.path.join(expected_path, link_name)
                 self.assertFileNotFound(actual_link_path)
 
+    def test_should_not_create_folder_when_excluded_with_pattern(self):
+        self.excluded_included_folder_test('excluded_folder', 'included_folder',
+                                           additional_args=['--exclude', 'excluded*'])
+
+    def test_should_not_create_folder_when_excluded_with_regex(self):
+        self.excluded_included_folder_test('excluded_folder', 'included_folder',
+                                           additional_args=['--rexclude', 'excluded.*$'])
+
+    def test_should_create_folder_when_included_before_excluded_with_pattern(self):
+        self.excluded_included_folder_test('excluded_folder', 'excluded_not_folder',
+                                           additional_args=['--include', 'excluded_not*',
+                                                            '--exclude', 'excluded*'])
+
+    def test_should_create_folder_when_included_before_excluded_with_regex(self):
+        self.excluded_included_folder_test('excluded_folder', 'excluded_not_folder',
+                                           additional_args=['--rinclude', 'excluded_not.*$',
+                                                            '--rexclude', 'excluded.*$'])
+
+    def excluded_included_folder_test(self, excluded_folder_name, included_folder_name, additional_args):
+        file_name = 'file'
+        with tempfile.TemporaryDirectory() as expected_path:
+            expected_excluded_folder_path = os.path.join(expected_path, excluded_folder_name)
+            expected_excluded_file_path = os.path.join(expected_excluded_folder_path, file_name)
+
+            os.mkdir(expected_excluded_folder_path)
+            self.file_write_random_line(expected_excluded_file_path)
+
+            expected_included_folder_path = os.path.join(expected_path, included_folder_name)
+            expected_included_file_path = os.path.join(expected_included_folder_path, file_name)
+
+            os.mkdir(expected_included_folder_path)
+            self.file_write_random_line(expected_included_file_path)
+
+            self.sync_from_local(expected_path, additional_args=additional_args)
+
+            with tempfile.TemporaryDirectory() as actual_path:
+                self.sync_from_remote(actual_path)
+
+                self.assertFolderMatches(actual_path, expected_path, name=included_folder_name)
+                actual_included_folder_path = os.path.join(actual_path, included_folder_name)
+                self.assertFileMatches(actual_included_folder_path, expected_included_folder_path, name=file_name)
+
+                self.assertFolder(expected_excluded_folder_path)
+                actual_excluded_folder_path = os.path.join(actual_path, excluded_folder_name)
+                self.assertFolderNotFound(actual_excluded_folder_path)
+
+    def test_should_not_create_file_when_excluded_with_pattern(self):
+        self.excluded_included_file_test('excluded_file', 'included_file',
+                                         additional_args=['--exclude', 'excluded*'])
+
+    def test_should_not_create_file_when_excluded_with_regex(self):
+        self.excluded_included_file_test('excluded_file', 'included_file',
+                                         additional_args=['--rexclude', 'excluded.*$'])
+
+    def test_should_create_file_when_included_before_excluded_with_pattern(self):
+        self.excluded_included_file_test('excluded_file', 'excluded_not_file',
+                                         additional_args=['--include', 'excluded_not*',
+                                                          '--exclude', 'excluded*'])
+
+    def test_should_create_file_when_included_before_excluded_with_regex(self):
+        self.excluded_included_file_test('excluded_file', 'excluded_not_file',
+                                         additional_args=['--rinclude', 'excluded_not.*$',
+                                                          '--rexclude', 'excluded.*$'])
+
+    def excluded_included_file_test(self, excluded_file_name, included_file_name, additional_args):
+        with tempfile.TemporaryDirectory() as expected_path:
+            expected_excluded_file_path = os.path.join(expected_path, excluded_file_name)
+            self.file_write_random_line(expected_excluded_file_path)
+
+            expected_included_file_path = os.path.join(expected_path, included_file_name)
+            self.file_write_random_line(expected_included_file_path)
+
+            self.sync_from_local(expected_path, additional_args=additional_args)
+
+            with tempfile.TemporaryDirectory() as actual_path:
+                self.sync_from_remote(actual_path)
+
+                self.assertFileMatches(actual_path, expected_path, name=included_file_name)
+
+                self.assertFile(expected_excluded_file_path)
+                actual_excluded_file_path = os.path.join(actual_path, excluded_file_name)
+                self.assertFileNotFound(actual_excluded_file_path)
+
     def file_write_random_line(self, file, mode='a'):
         with open(file, mode=mode) as f:
             f.write(str(uuid.uuid4()))
