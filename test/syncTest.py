@@ -394,7 +394,37 @@ class SyncTestCase(unittest.TestCase):
                 self.assertFile(expected_link_path)
                 self.assertFileNotFound(actual_link_path)
 
-    def test_should_create_symbolic_link_when_option(self):
+    def test_should_create_symbolic_link_to_folder_when_option(self):
+        folder_name = 'folder'
+        file_name = 'file'
+        link_name = 'link'
+        with tempfile.TemporaryDirectory() as expected_path:
+            expected_folder_path = os.path.join(expected_path, folder_name)
+            os.mkdir(expected_folder_path)
+
+            expected_file_path = os.path.join(expected_folder_path, file_name)
+            self.file_write_random_line(expected_file_path)
+
+            expected_link_path = os.path.join(expected_path, link_name)
+            os.symlink(expected_folder_path, expected_link_path)
+
+            self.sync_from_local(expected_path, additional_args=['-L'])
+
+            with tempfile.TemporaryDirectory() as actual_path:
+                self.sync_from_remote(actual_path)
+
+                actual_folder_path = os.path.join(actual_path, folder_name)
+                self.assertFolderMatches(actual_path, expected_path, name=folder_name)
+                self.assertFileMatches(actual_folder_path, expected_folder_path, name=file_name)
+                self.assertFolderMatches(actual_path, expected_path, name=link_name)
+
+                actual_link_path = os.path.join(expected_path, link_name)
+                self.assertFolderMatches(actual_link_path, expected_folder_path)
+
+                actual_file_path = os.path.join(actual_path, link_name, file_name)
+                self.assertFileMatches(actual_file_path, expected_file_path)
+
+    def test_should_create_symbolic_link_to_file_when_option(self):
         file_name = 'file'
         link_name = 'link'
         with tempfile.TemporaryDirectory() as expected_path:
@@ -411,6 +441,9 @@ class SyncTestCase(unittest.TestCase):
 
                 self.assertFileMatches(actual_path, expected_path, name=file_name)
                 self.assertFileMatches(actual_path, expected_path, name=link_name)
+
+                actual_link_path = os.path.join(expected_path, link_name)
+                self.assertFileMatches(actual_link_path, expected_file_path)
 
     def file_write_random_line(self, file, mode='a'):
         with open(file, mode=mode) as f:
