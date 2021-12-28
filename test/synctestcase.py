@@ -41,12 +41,16 @@ class SyncTestCase(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
+        logging.info("Setting up %s...", cls)
+
         cls.drive = driveutils.drive()
         cls.remote_factory = remotefolder.Factory(cls.drive)
         cls.remote_location = location.create(REMOTE_URL)
 
     @classmethod
     def tearDownClass(cls):
+        logging.info("Tearing down %s...", cls)
+
         cls.drive.close()
 
     def setUp(self):
