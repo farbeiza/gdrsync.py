@@ -108,6 +108,63 @@ class ExcludeIncludeTestCase(synctestcase.SyncTestCase):
                 actual_excluded_file_path = os.path.join(actual_path, excluded_file_name)
                 self.assertFileNotFound(actual_excluded_file_path)
 
+    def test_should_delete_excluded_folder_when_option(self):
+        excluded_folder_name = 'excluded_folder'
+        included_folder_name = 'included_folder'
+        file_name = 'file'
+        with tempfile.TemporaryDirectory() as expected_path:
+            expected_excluded_folder_path = os.path.join(expected_path, excluded_folder_name)
+            expected_excluded_file_path = os.path.join(expected_excluded_folder_path, file_name)
+
+            os.mkdir(expected_excluded_folder_path)
+            self.file_write_random_line(expected_excluded_file_path)
+
+            expected_included_folder_path = os.path.join(expected_path, included_folder_name)
+            expected_included_file_path = os.path.join(expected_included_folder_path, file_name)
+
+            os.mkdir(expected_included_folder_path)
+            self.file_write_random_line(expected_included_file_path)
+
+            self.sync_from_local(expected_path)
+
+            self.sync_from_local(expected_path, additional_args=['--exclude', 'excluded*',
+                                                                 '--delete-excluded'])
+
+            with tempfile.TemporaryDirectory() as actual_path:
+                self.sync_from_remote(actual_path)
+
+                self.assertFolderMatches(actual_path, expected_path, name=included_folder_name)
+                actual_included_folder_path = os.path.join(actual_path, included_folder_name)
+                self.assertFileMatches(actual_included_folder_path, expected_included_folder_path, name=file_name)
+
+                self.assertFolder(expected_excluded_folder_path)
+                actual_excluded_folder_path = os.path.join(actual_path, excluded_folder_name)
+                self.assertFolderNotFound(actual_excluded_folder_path)
+
+    def test_should_delete_excluded_file_when_option(self):
+        excluded_file_name = 'excluded_file'
+        included_file_name = 'included_file'
+        with tempfile.TemporaryDirectory() as expected_path:
+            expected_excluded_file_path = os.path.join(expected_path, excluded_file_name)
+            self.file_write_random_line(expected_excluded_file_path)
+
+            expected_included_file_path = os.path.join(expected_path, included_file_name)
+            self.file_write_random_line(expected_included_file_path)
+
+            self.sync_from_local(expected_path)
+
+            self.sync_from_local(expected_path, additional_args=['--exclude', 'excluded*',
+                                                                 '--delete-excluded'])
+
+            with tempfile.TemporaryDirectory() as actual_path:
+                self.sync_from_remote(actual_path)
+
+                self.assertFileMatches(actual_path, expected_path, name=included_file_name)
+
+                self.assertFile(expected_excluded_file_path)
+                actual_excluded_file_path = os.path.join(actual_path, excluded_file_name)
+                self.assertFileNotFound(actual_excluded_file_path)
+
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)
