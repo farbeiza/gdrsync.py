@@ -79,10 +79,10 @@ class SyncTestCase(unittest.TestCase):
             os.mkdir(expected_folder_path)
             self.file_write_random_line(expected_file_path)
 
-            self.sync('-r', expected_path + os.sep, REMOTE_URL)
+            self.sync_from_local(expected_path)
 
             with tempfile.TemporaryDirectory() as actual_path:
-                self.sync('-r', REMOTE_URL + location.URL_SEPARATOR, actual_path)
+                self.sync_from_remote(actual_path)
 
                 self.assertFolder(actual_path, expected_path, folder_name)
 
@@ -95,10 +95,10 @@ class SyncTestCase(unittest.TestCase):
             expected_file_path = os.path.join(expected_path, file_name)
             self.file_write_random_line(expected_file_path)
 
-            self.sync(expected_file_path, REMOTE_URL)
+            self.sync_file_from_local(expected_file_path)
 
             with tempfile.TemporaryDirectory() as actual_path:
-                self.sync(REMOTE_URL + location.URL_SEPARATOR + file_name, actual_path)
+                self.sync_file_from_remote(file_name, actual_path)
 
                 self.assertFile(actual_path, expected_path, file_name)
 
@@ -113,15 +113,15 @@ class SyncTestCase(unittest.TestCase):
             expected_file_path_1 = os.path.join(expected_folder_path, file_name_1)
             self.file_write_random_line(expected_file_path_1)
 
-            self.sync('-r', expected_path + os.sep, REMOTE_URL)
+            self.sync_from_local(expected_path)
 
             expected_file_path_2 = os.path.join(expected_folder_path, file_name_2)
             self.file_write_random_line(expected_file_path_2)
 
-            self.sync('-r', expected_path + os.sep, REMOTE_URL)
+            self.sync_from_local(expected_path)
 
             with tempfile.TemporaryDirectory() as actual_path:
-                self.sync('-r', REMOTE_URL + location.URL_SEPARATOR, actual_path)
+                self.sync_from_remote(actual_path)
 
                 self.assertFolder(actual_path, expected_path, folder_name)
 
@@ -137,7 +137,7 @@ class SyncTestCase(unittest.TestCase):
             self.file_write_random_line(expected_file_path)
             stat1 = os.stat(expected_file_path)
 
-            self.sync(expected_file_path, REMOTE_URL)
+            self.sync_file_from_local(expected_file_path)
 
             self.file_write_random_line(expected_file_path)
             stat2 = os.stat(expected_file_path)
@@ -145,10 +145,10 @@ class SyncTestCase(unittest.TestCase):
             self.assertNotEqual(stat2.st_size, stat1.st_size)
             self.assertNotEqual(stat2.st_mtime, stat1.st_mtime)
 
-            self.sync(expected_file_path, REMOTE_URL)
+            self.sync_file_from_local(expected_file_path)
 
             with tempfile.TemporaryDirectory() as actual_path:
-                self.sync(REMOTE_URL + location.URL_SEPARATOR + file_name, actual_path)
+                self.sync_file_from_remote(file_name, actual_path)
 
                 self.assertFile(actual_path, expected_path, file_name)
 
@@ -162,7 +162,7 @@ class SyncTestCase(unittest.TestCase):
             os.utime(expected_file_path, times=(time, time))
             stat1 = os.stat(expected_file_path)
 
-            self.sync('-r', expected_path + os.sep, REMOTE_URL)
+            self.sync_from_local(expected_path)
 
             self.file_write_random_line(expected_file_path, mode='w')
             os.utime(expected_file_path, times=(time, time))
@@ -171,10 +171,10 @@ class SyncTestCase(unittest.TestCase):
             self.assertEqual(stat2.st_size, stat1.st_size)
             self.assertEqual(stat2.st_mtime, stat1.st_mtime)
 
-            self.sync('-r', expected_path + os.sep, REMOTE_URL)
+            self.sync_from_local(expected_path)
 
             with tempfile.TemporaryDirectory() as actual_path:
-                self.sync('-r', REMOTE_URL + location.URL_SEPARATOR, actual_path)
+                self.sync_from_remote(actual_path)
 
                 actual_file_path = os.path.join(actual_path, file_name)
                 self.assertFalse(filecmp.cmp(actual_file_path, expected_file_path, shallow=False),
@@ -190,7 +190,7 @@ class SyncTestCase(unittest.TestCase):
             os.utime(expected_file_path, times=(time, time))
             stat1 = os.stat(expected_file_path)
 
-            self.sync('-r', '-c', expected_path + os.sep, REMOTE_URL)
+            self.sync_from_local(expected_path, additional_args=['-c'])
 
             self.file_write_random_line(expected_file_path, mode='w')
             os.utime(expected_file_path, times=(time, time))
@@ -199,10 +199,10 @@ class SyncTestCase(unittest.TestCase):
             self.assertEqual(stat2.st_size, stat1.st_size)
             self.assertEqual(stat2.st_mtime, stat1.st_mtime)
 
-            self.sync('-r', '-c', expected_path + os.sep, REMOTE_URL)
+            self.sync_from_local(expected_path, additional_args=['-c'])
 
             with tempfile.TemporaryDirectory() as actual_path:
-                self.sync('-r', REMOTE_URL + location.URL_SEPARATOR, actual_path)
+                self.sync_from_remote(actual_path)
 
                 self.assertFile(actual_path, expected_path, file_name)
 
@@ -220,14 +220,14 @@ class SyncTestCase(unittest.TestCase):
             expected_file_path = os.path.join(expected_path, file_name)
             self.file_write_random_line(expected_file_path)
 
-            self.sync('-r', expected_path + os.sep, REMOTE_URL)
+            self.sync_from_local(expected_path)
 
             os.utime(expected_file_path, times=(time, time))
 
-            self.sync('-r', expected_path + os.sep, REMOTE_URL)
+            self.sync_from_local(expected_path)
 
             with tempfile.TemporaryDirectory() as actual_path:
-                self.sync('-r', REMOTE_URL + location.URL_SEPARATOR, actual_path)
+                self.sync_from_remote(actual_path)
 
                 self.assertFile(actual_path, expected_path, file_name)
 
@@ -247,7 +247,7 @@ class SyncTestCase(unittest.TestCase):
             self.file_write_random_line(expected_file_path)
             stat1 = os.stat(expected_file_path)
 
-            self.sync('-r', expected_path + os.sep, REMOTE_URL)
+            self.sync_from_local(expected_path)
 
             self.file_write_random_line(expected_file_path)
             stat2 = os.stat(expected_file_path)
@@ -255,10 +255,10 @@ class SyncTestCase(unittest.TestCase):
             self.assertNotEqual(stat2.st_size, stat1.st_size)
             self.assertNotEqual(stat2.st_mtime, stat1.st_mtime)
 
-            self.sync('-r', expected_path + os.sep, REMOTE_URL)
+            self.sync_from_local(expected_path)
 
             with tempfile.TemporaryDirectory() as actual_path:
-                self.sync('-r', REMOTE_URL + location.URL_SEPARATOR, actual_path)
+                self.sync_from_remote(actual_path)
 
                 self.assertFolder(actual_path, expected_path, folder_name)
 
@@ -275,10 +275,10 @@ class SyncTestCase(unittest.TestCase):
             expected_file_path = os.path.join(expected_folder_path, file_name)
             self.file_write_random_line(expected_file_path)
 
-            self.sync('-r', expected_path + os.sep, REMOTE_URL)
+            self.sync_from_local(expected_path)
 
             with tempfile.TemporaryDirectory() as actual_path:
-                self.sync('-r', REMOTE_URL + location.URL_SEPARATOR, actual_path)
+                self.sync_from_remote(actual_path)
 
                 self.assertFolder(actual_path, expected_path, folder_name)
 
@@ -287,12 +287,12 @@ class SyncTestCase(unittest.TestCase):
 
                 shutil.rmtree(expected_folder_path)
 
-                self.sync('-r', '--delete', expected_path + os.sep, REMOTE_URL)
+                self.sync_from_local(expected_path, additional_args=['--delete'])
 
-                self.sync('-r', '--delete', REMOTE_URL + location.URL_SEPARATOR, actual_path)
+                self.sync_from_remote(actual_path, additional_args=['--delete'])
 
-                self.assertFolder(actual_path, expected_path, folder_name)
-                self.assertFile(actual_folder_path, expected_folder_path, file_name)
+                self.assertFolderNotFound(actual_path, expected_path, folder_name)
+                self.assertFileNotFound(actual_folder_path, expected_folder_path, file_name)
 
     def test_should_delete_extraneous_file_when_option(self):
         file_name = 'extraneous_file'
@@ -300,25 +300,43 @@ class SyncTestCase(unittest.TestCase):
             expected_file_path = os.path.join(expected_path, file_name)
             self.file_write_random_line(expected_file_path)
 
-            self.sync('-r', expected_path + os.sep, REMOTE_URL)
+            self.sync_from_local(expected_path)
 
             with tempfile.TemporaryDirectory() as actual_path:
-                self.sync('-r', REMOTE_URL + location.URL_SEPARATOR, actual_path)
+                self.sync_from_remote(actual_path)
 
                 self.assertFile(actual_path, expected_path, file_name)
 
                 os.remove(expected_file_path)
 
-                self.sync('-r', '--delete', expected_path + os.sep, REMOTE_URL)
+                self.sync_from_local(expected_path, additional_args=['--delete'])
 
-                self.sync('-r', '--delete', REMOTE_URL + location.URL_SEPARATOR, actual_path)
+                self.sync_from_remote(actual_path, additional_args=['--delete'])
 
-                self.assertFile(actual_path, expected_path, file_name)
+                self.assertFileNotFound(actual_path, expected_path, file_name)
 
     def file_write_random_line(self, file, mode='a'):
         with open(file, mode=mode) as f:
             f.write(str(uuid.uuid4()))
             f.write('\n')
+
+    def sync_from_local(self, local_path, additional_args=None):
+        if additional_args is None:
+            additional_args = []
+
+        self.sync('-r', *additional_args, local_path + os.sep, REMOTE_URL)
+
+    def sync_from_remote(self, local_path, additional_args=None):
+        if additional_args is None:
+            additional_args = []
+
+        self.sync('-r', *additional_args, REMOTE_URL + location.URL_SEPARATOR, local_path)
+
+    def sync_file_from_local(self, file_path):
+        self.sync(file_path, REMOTE_URL)
+
+    def sync_file_from_remote(self, file_name, local_path):
+        self.sync(REMOTE_URL + location.URL_SEPARATOR + file_name, local_path)
 
     def sync(self, *arg_list):
         args = argumentparser.PARSER.parse_args(args=arg_list)
@@ -331,30 +349,40 @@ class SyncTestCase(unittest.TestCase):
         first = os.path.join(first_base, name)
         second = os.path.join(second_base, name)
 
-        if not os.path.exists(first):
-            self.assertFalse(os.path.exists(second), f'Folder exists: {second}')
-        else:
-            self.assertTrue(os.path.isdir(first), msg=f'Not a folder: {first}')
+        self.assertTrue(os.path.exists(first), msg=f'Folder does not exist: {first}')
+        self.assertTrue(os.path.exists(second), msg=f'Folder does not exist: {second}')
 
-            self.assertTrue(os.path.exists(second), f'Folder does not exist: {second}')
-            self.assertTrue(os.path.isdir(second), f'Not a folder: {second}')
+        self.assertTrue(os.path.isdir(first), msg=f'Not a folder: {first}')
+        self.assertTrue(os.path.isdir(second), msg=f'Not a folder: {second}')
 
     def assertFile(self, first_base, second_base, name):
         first = os.path.join(first_base, name)
         second = os.path.join(second_base, name)
 
-        if not os.path.exists(first):
-            self.assertFalse(os.path.exists(second), msg=f'File exists: {second}')
-        else:
-            self.assertTrue(os.path.isfile(first), msg=f'Not a file: {first}')
+        self.assertTrue(os.path.exists(first), msg=f'File does not exist: {first}')
+        self.assertTrue(os.path.exists(second), msg=f'File does not exist: {second}')
 
-            self.assertTrue(os.path.exists(second), msg=f'File does not exist: {second}')
-            self.assertTrue(os.path.isfile(second), msg=f'Not a file: {second}')
+        self.assertTrue(os.path.isfile(first), msg=f'Not a file: {first}')
+        self.assertTrue(os.path.isfile(second), msg=f'Not a file: {second}')
 
-            self.assertTrue(filecmp.cmp(first, second, shallow=False),
-                            msg=f'Different file contents: {first} != {second}')
+        self.assertTrue(filecmp.cmp(first, second, shallow=False),
+                        msg=f'Different file contents: {first} != {second}')
 
-            self.assertModificationTime(first, second)
+        self.assertModificationTime(first, second)
+
+    def assertFolderNotFound(self, first_base, second_base, name):
+        first = os.path.join(first_base, name)
+        second = os.path.join(second_base, name)
+
+        self.assertFalse(os.path.exists(first), msg=f'Folder exists: {first}')
+        self.assertFalse(os.path.exists(second), msg=f'Folder exists: {second}')
+
+    def assertFileNotFound(self, first_base, second_base, name):
+        first = os.path.join(first_base, name)
+        second = os.path.join(second_base, name)
+
+        self.assertFalse(os.path.exists(first), msg=f'File exists: {first}')
+        self.assertFalse(os.path.exists(second), msg=f'File exists: {second}')
 
     def assertModificationTime(self, first_path, second_path):
         first = os.stat(first_path).st_mtime
