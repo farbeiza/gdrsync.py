@@ -391,7 +391,7 @@ class SyncTestCase(unittest.TestCase):
                 self.assertFileMatches(actual_path, expected_path, name=file_name)
 
                 actual_link_path = os.path.join(actual_path, link_name)
-                self.assertFile(expected_link_path)
+                self.assertLink(expected_link_path)
                 self.assertFileNotFound(actual_link_path)
 
     def test_should_create_symbolic_link_to_folder_when_option(self):
@@ -418,11 +418,13 @@ class SyncTestCase(unittest.TestCase):
                 self.assertFileMatches(actual_folder_path, expected_folder_path, name=file_name)
                 self.assertFolderMatches(actual_path, expected_path, name=link_name)
 
-                actual_link_path = os.path.join(expected_path, link_name)
+                actual_link_path = os.path.join(actual_path, link_name)
+                self.assertLink(expected_link_path)
+                self.assertFolder(actual_link_path)
                 self.assertFolderMatches(actual_link_path, expected_folder_path)
 
-                actual_file_path = os.path.join(actual_path, link_name, file_name)
-                self.assertFileMatches(actual_file_path, expected_file_path)
+                actual_link_file_path = os.path.join(actual_path, link_name, file_name)
+                self.assertFileMatches(actual_link_file_path, expected_file_path)
 
     def test_should_create_symbolic_link_to_file_when_option(self):
         file_name = 'file'
@@ -442,7 +444,8 @@ class SyncTestCase(unittest.TestCase):
                 self.assertFileMatches(actual_path, expected_path, name=file_name)
                 self.assertFileMatches(actual_path, expected_path, name=link_name)
 
-                actual_link_path = os.path.join(expected_path, link_name)
+                actual_link_path = os.path.join(actual_path, link_name)
+                self.assertLink(expected_link_path)
                 self.assertFileMatches(actual_link_path, expected_file_path)
 
     def test_should_not_create_symbolic_broken_link_when_option(self):
