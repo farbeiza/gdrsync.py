@@ -445,6 +445,29 @@ class SyncTestCase(unittest.TestCase):
                 actual_link_path = os.path.join(expected_path, link_name)
                 self.assertFileMatches(actual_link_path, expected_file_path)
 
+    def test_should_not_create_symbolic_broken_link_when_option(self):
+        missing_file_name = 'missing'
+        link_name = 'link'
+        with tempfile.TemporaryDirectory() as expected_path:
+            missing_file_path = os.path.join(expected_path, missing_file_name)
+            self.file_write_random_line(missing_file_path)
+
+            expected_link_path = os.path.join(expected_path, link_name)
+            os.symlink(missing_file_path, expected_link_path)
+
+            os.remove(missing_file_path)
+
+            self.sync_from_local(expected_path, additional_args=['-L'])
+
+            with tempfile.TemporaryDirectory() as actual_path:
+                self.sync_from_remote(actual_path)
+
+                self.assertFileNotFound(missing_file_path)
+                self.assertLink(expected_link_path)
+
+                actual_link_path = os.path.join(expected_path, link_name)
+                self.assertFileNotFound(actual_link_path)
+
     def file_write_random_line(self, file, mode='a'):
         with open(file, mode=mode) as f:
             f.write(str(uuid.uuid4()))
@@ -482,6 +505,10 @@ class SyncTestCase(unittest.TestCase):
     def assertFile(self, path):
         self.assertTrue(os.path.exists(path), msg=f'File does not exist: {path}')
         self.assertTrue(os.path.isfile(path), msg=f'Not a file: {path}')
+
+    def assertLink(self, path):
+        self.assertTrue(os.path.lexists(path), msg=f'Symbolic link does not exist: {path}')
+        self.assertTrue(os.path.islink(path), msg=f'Not a symbolic link: {path}')
 
     def assertFolderMatches(self, first, second, name=None):
         if name is not None:
