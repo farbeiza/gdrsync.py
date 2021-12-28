@@ -77,7 +77,10 @@ class Sync(object):
         LOGGER.info('Starting...')
 
         virtualSourceFolder = self.sourceFolderFactory.virtualFromLocations(self.sourceLocations)
-        destFolder = self.destFolderFactory.create(self.destLocation, create_path=True)
+
+        create_path = not self.args.dryRun
+        destFolder = self.destFolderFactory.create(self.destLocation, create_path=create_path)
+
         self._sync(virtualSourceFolder, destFolder)
 
         self.logResult()
