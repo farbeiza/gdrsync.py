@@ -84,10 +84,10 @@ class SyncTestCase(unittest.TestCase):
             with tempfile.TemporaryDirectory() as actual_path:
                 self.sync_from_remote(actual_path)
 
-                self.assertFolderMatches(actual_path, expected_path, folder_name)
+                self.assertFolderMatches(actual_path, expected_path, name=folder_name)
 
                 actual_folder_path = os.path.join(actual_path, folder_name)
-                self.assertFileMatches(actual_folder_path, expected_folder_path, file_name)
+                self.assertFileMatches(actual_folder_path, expected_folder_path, name=file_name)
 
     def test_should_create_file(self):
         file_name = 'create_file'
@@ -100,7 +100,7 @@ class SyncTestCase(unittest.TestCase):
             with tempfile.TemporaryDirectory() as actual_path:
                 self.sync_file_from_remote(file_name, actual_path)
 
-                self.assertFileMatches(actual_path, expected_path, file_name)
+                self.assertFileMatches(actual_path, expected_path, name=file_name)
 
     def test_should_update_folder(self):
         folder_name = 'update_folder'
@@ -123,11 +123,11 @@ class SyncTestCase(unittest.TestCase):
             with tempfile.TemporaryDirectory() as actual_path:
                 self.sync_from_remote(actual_path)
 
-                self.assertFolderMatches(actual_path, expected_path, folder_name)
+                self.assertFolderMatches(actual_path, expected_path, name=folder_name)
 
                 actual_folder_path = os.path.join(actual_path, folder_name)
-                self.assertFileMatches(actual_folder_path, expected_folder_path, file_name_1)
-                self.assertFileMatches(actual_folder_path, expected_folder_path, file_name_2)
+                self.assertFileMatches(actual_folder_path, expected_folder_path, name=file_name_1)
+                self.assertFileMatches(actual_folder_path, expected_folder_path, name=file_name_2)
 
     def test_should_update_file(self):
         file_name = 'update_file'
@@ -150,7 +150,7 @@ class SyncTestCase(unittest.TestCase):
             with tempfile.TemporaryDirectory() as actual_path:
                 self.sync_file_from_remote(file_name, actual_path)
 
-                self.assertFileMatches(actual_path, expected_path, file_name)
+                self.assertFileMatches(actual_path, expected_path, name=file_name)
 
     def test_should_not_update_file_when_same_size_and_same_modification_time(self):
         file_name = 'update_file'
@@ -204,7 +204,7 @@ class SyncTestCase(unittest.TestCase):
             with tempfile.TemporaryDirectory() as actual_path:
                 self.sync_from_remote(actual_path)
 
-                self.assertFileMatches(actual_path, expected_path, file_name)
+                self.assertFileMatches(actual_path, expected_path, name=file_name)
 
     def test_should_update_modification_time(self):
         self.modification_time_test('modification_time', 12345.54321)
@@ -229,7 +229,7 @@ class SyncTestCase(unittest.TestCase):
             with tempfile.TemporaryDirectory() as actual_path:
                 self.sync_from_remote(actual_path)
 
-                self.assertFileMatches(actual_path, expected_path, file_name)
+                self.assertFileMatches(actual_path, expected_path, name=file_name)
 
     def test_should_update_file_when_special_char_name(self):
         self.update_test('specialCharFolder*?', 'specialChar*?')
@@ -260,10 +260,10 @@ class SyncTestCase(unittest.TestCase):
             with tempfile.TemporaryDirectory() as actual_path:
                 self.sync_from_remote(actual_path)
 
-                self.assertFolderMatches(actual_path, expected_path, folder_name)
+                self.assertFolderMatches(actual_path, expected_path, name=folder_name)
 
                 actual_folder_path = os.path.join(actual_path, folder_name)
-                self.assertFileMatches(actual_folder_path, expected_folder_path, file_name)
+                self.assertFileMatches(actual_folder_path, expected_folder_path, name=file_name)
 
     def test_should_keep_extraneous_folder(self):
         folder_name = 'extraneous_folder'
@@ -280,10 +280,10 @@ class SyncTestCase(unittest.TestCase):
             with tempfile.TemporaryDirectory() as actual_path:
                 self.sync_from_remote(actual_path)
 
-                self.assertFolderMatches(actual_path, expected_path, folder_name)
+                self.assertFolderMatches(actual_path, expected_path, name=folder_name)
 
                 actual_folder_path = os.path.join(actual_path, folder_name)
-                self.assertFileMatches(actual_folder_path, expected_folder_path, file_name)
+                self.assertFileMatches(actual_folder_path, expected_folder_path, name=file_name)
 
                 shutil.rmtree(expected_folder_path)
                 shutil.rmtree(actual_folder_path)
@@ -314,10 +314,10 @@ class SyncTestCase(unittest.TestCase):
             with tempfile.TemporaryDirectory() as actual_path:
                 self.sync_from_remote(actual_path)
 
-                self.assertFolderMatches(actual_path, expected_path, folder_name)
+                self.assertFolderMatches(actual_path, expected_path, name=folder_name)
 
                 actual_folder_path = os.path.join(actual_path, folder_name)
-                self.assertFileMatches(actual_folder_path, expected_folder_path, file_name)
+                self.assertFileMatches(actual_folder_path, expected_folder_path, name=file_name)
 
                 shutil.rmtree(expected_folder_path)
 
@@ -339,7 +339,7 @@ class SyncTestCase(unittest.TestCase):
             with tempfile.TemporaryDirectory() as actual_path:
                 self.sync_from_remote(actual_path)
 
-                self.assertFileMatches(actual_path, expected_path, file_name)
+                self.assertFileMatches(actual_path, expected_path, name=file_name)
 
                 os.remove(expected_file_path)
 
@@ -363,7 +363,7 @@ class SyncTestCase(unittest.TestCase):
             with tempfile.TemporaryDirectory() as actual_path:
                 self.sync_from_remote(actual_path)
 
-                self.assertFileMatches(actual_path, expected_path, file_name)
+                self.assertFileMatches(actual_path, expected_path, name=file_name)
 
                 os.remove(expected_file_path)
 
@@ -388,11 +388,29 @@ class SyncTestCase(unittest.TestCase):
             with tempfile.TemporaryDirectory() as actual_path:
                 self.sync_from_remote(actual_path)
 
-                self.assertFileMatches(actual_path, expected_path, file_name)
+                self.assertFileMatches(actual_path, expected_path, name=file_name)
 
                 actual_link_path = os.path.join(actual_path, link_name)
                 self.assertFile(expected_link_path)
                 self.assertFileNotFound(actual_link_path)
+
+    def test_should_create_symbolic_link_when_option(self):
+        file_name = 'file'
+        link_name = 'link'
+        with tempfile.TemporaryDirectory() as expected_path:
+            expected_file_path = os.path.join(expected_path, file_name)
+            self.file_write_random_line(expected_file_path)
+
+            expected_link_path = os.path.join(expected_path, link_name)
+            os.symlink(expected_file_path, expected_link_path)
+
+            self.sync_from_local(expected_path, additional_args=['-L'])
+
+            with tempfile.TemporaryDirectory() as actual_path:
+                self.sync_from_remote(actual_path)
+
+                self.assertFileMatches(actual_path, expected_path, name=file_name)
+                self.assertFileMatches(actual_path, expected_path, name=link_name)
 
     def file_write_random_line(self, file, mode='a'):
         with open(file, mode=mode) as f:
@@ -432,16 +450,18 @@ class SyncTestCase(unittest.TestCase):
         self.assertTrue(os.path.exists(path), msg=f'File does not exist: {path}')
         self.assertTrue(os.path.isfile(path), msg=f'Not a file: {path}')
 
-    def assertFolderMatches(self, first_base, second_base, name):
-        first = os.path.join(first_base, name)
-        second = os.path.join(second_base, name)
+    def assertFolderMatches(self, first, second, name=None):
+        if name is not None:
+            first = os.path.join(first, name)
+            second = os.path.join(second, name)
 
         self.assertFolder(first)
         self.assertFolder(second)
 
-    def assertFileMatches(self, first_base, second_base, name):
-        first = os.path.join(first_base, name)
-        second = os.path.join(second_base, name)
+    def assertFileMatches(self, first, second, name=None):
+        if name is not None:
+            first = os.path.join(first, name)
+            second = os.path.join(second, name)
 
         self.assertFile(first)
         self.assertFile(second)
