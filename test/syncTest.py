@@ -373,6 +373,27 @@ class SyncTestCase(unittest.TestCase):
 
                 self.assertFileNotFoundMatches(actual_path, expected_path, file_name)
 
+    def test_should_not_create_symbolic_link(self):
+        file_name = 'file'
+        link_name = 'link'
+        with tempfile.TemporaryDirectory() as expected_path:
+            expected_file_path = os.path.join(expected_path, file_name)
+            self.file_write_random_line(expected_file_path)
+
+            expected_link_path = os.path.join(expected_path, link_name)
+            os.symlink(expected_file_path, expected_link_path)
+
+            self.sync_from_local(expected_path)
+
+            with tempfile.TemporaryDirectory() as actual_path:
+                self.sync_from_remote(actual_path)
+
+                self.assertFileMatches(actual_path, expected_path, file_name)
+
+                actual_link_path = os.path.join(actual_path, link_name)
+                self.assertFile(expected_link_path)
+                self.assertFileNotFound(actual_link_path)
+
     def file_write_random_line(self, file, mode='a'):
         with open(file, mode=mode) as f:
             f.write(str(uuid.uuid4()))
